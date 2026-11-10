@@ -1,0 +1,199 @@
+# BUBBLE DEFENSE — AGENT RULES (.cursorrules)
+
+> Binding rules for every human or AI contributor. If a rule conflicts with a request,
+> stop and flag the conflict in `docs/STATE_AND_TASKS.md` → "Open Questions".
+
+---
+
+## 0. Project Identity
+
+- Product: **Bubble Defense** — a high-precision 2D physics arcade game.
+- Stack: **100% Kotlin**, Jetpack Compose `Canvas` for rendering. No game engines, no
+  OpenGL/Vulkan wrappers, no third-party physics libraries, no Java source files.
+- Package root: `com.arcade.bubbledefense`.
+- Units everywhere in simulation code: **world units (wu)**, **seconds (s)**, **radians**.
+  World space is a virtual `1000 x 1800` wu rectangle, origin top-left, **+Y points DOWN**.
+- Skills Integration: Active specialized architectural skills in `.antigravity/skills/`:
+  - `kinetic-flow-architect`: Flow state, dopamine clocks, juice matrix, sub-300ms retry.
+  - `kotlin-ux-architect`: 120Hz Compose phase hygiene, zero-alloc Canvas, gesture sampling.
+  - `arcade-economy-architect`: Flow-state monetization, procedural skins, SDK quarantine.
+
+---
+
+## 1. Docs-as-Memory, Master Tasklist & Versioning Protocol (MANDATORY)
+
+`/docs` is the persistent state machine of this project. Code without matching docs is a bug.
+
+### 1.1 Master Tasklist Discipline (`docs/STATE_AND_TASKS.md`)
+- **Single Source of Truth:** `docs/STATE_AND_TASKS.md` contains the master tasklist for all phases.
+- **Before writing any code:**
+  1. Inspect `docs/STATE_AND_TASKS.md` to identify the active phase, current task, and handoff notes.
+  2. Mark the target task as in-progress (`[/]`).
+  3. Read the relevant architectural specs (`ARCHITECTURE.md`, `PHYSICS_SPEC.md`, `GAME_DESIGN.md`).
+- **During & after code execution:**
+  1. If any constant, equation, or pool layout changes, update the spec document first.
+  2. Mark completed tasks (`[x]`).
+  3. Record newly discovered edge cases in Section 3 of `STATE_AND_TASKS.md`.
+  4. Write a dated handoff log for the next agent turn.
+- Never merge or skip execution phases. Pause for user review at the end of each phase.
+
+### 1.2 Semantic Versioning (SemVer 2.0.0)
+The project strictly tracks release and milestone versions using `MAJOR.MINOR.PATCH`:
+- **`MAJOR`**: Breaking architectural shifts or complete engine rewrites (e.g. `v1.0.0` shipping candidate).
+- **`MINOR`**: Completion of a full milestone phase introducing new systems (e.g. `v0.1.0` -> `v0.2.0` on Phase 2 completion).
+- **`PATCH`**: Bug fixes, performance optimizations, spec synchronization, and unit test additions.
+- Always log version transitions in the Change Log of `docs/STATE_AND_TASKS.md`.
+
+### 1.3 Conventional Commits & Documentation Quality
+All commit messages, PR titles, and agent turn summaries MUST follow the Conventional Commits specification:
+```text
+<type>(<scope>): [<PERSONA>] <description> (vX.Y.Z)
+```
+- **Allowed Types:** `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`.
+- **Scopes:** `math`, `collision`, `pool`, `loop`, `input`, `physics`, `render`, `director`, `juice`, `economy`, `hud`.
+- **Persona Tags:** `[ARCH-AGENT]`, `[PHYS-AGENT]`, `[JUICE-AGENT]`, `[ECON-AGENT]`.
+- **Example:** `feat(loop): [ARCH-AGENT] implement 120Hz fixed accumulator loop with hit-stop (v0.2.0)`
+- **Documentation Standards:** Every code symbol (class, value class, function, pool) must feature comprehensive KDoc stating units (wu, wu/s, rad), coordinate space (+Y down), and zero-alloc guarantees. Banned: placeholders (`// TODO`, `...`, stubs).
+
+---
+
+## 2. Persona Ownership & Integrated Skills
+
+| Persona | Primary Skill File | Owns | May touch with a note |
+|---|---|---|---|
+| **[ARCH-AGENT]** | `.antigravity/skills/kotlin-ux-architect` | `/docs`, repo layout, Gradle, `engine/pool`, `engine/loop`, `GameWorld`, Compose phase discipline | everything |
+| **[PHYS-AGENT]** | — | `engine/math`, `PhysicsSystem`, sub-stepping, CCD, `GameConfig` tuning | `GameWorld` field layout |
+| **[JUICE-AGENT]** | `.antigravity/skills/kinetic-flow-architect` | `ui/`, `ProceduralRenderer`, `JuiceSystem`, input, sensory matrix, trauma shake, palette | `GameConfig` juice constants |
+| **[ECON-AGENT]** | `.antigravity/skills/arcade-economy-architect` | `domain/economy`, `EconomyGateway`, procedural cosmetic profiles, Prisms, Clutch Revive | `DirectorSystem` harvest spawns |
+
+Prefix commit messages and handoff notes with the persona tag, e.g. `[JUICE-AGENT] add 28ms parry hit-stop`.
+
+---
+
+## 3. Zero-Allocation Hot Path (NON-NEGOTIABLE)
+
+The **hot path** = everything reachable from `FixedGameLoop.onFrame()`, every system
+`update(dt)`, every `DrawScope` draw lambda, and every `pointerInput` event handler.
+
+### 3.1 Banned in the hot path
+- `listOf`, `mutableListOf`, `arrayOf`, `map`, `filter`, `forEach`, `any`, `sortedBy`, `toList`,
+  `withIndex`, sequences — anything that allocates a collection, iterator, or lambda.
+- `for (x in list)` over `List`/`Collection` (allocates an `Iterator`). Use index loops over
+  primitive arrays: `for (i in 0 until count)`.
+- `Pair`, `Triple`, `data class` returns, `copy()`, varargs, string templates, `String.format`,
+  `toString()`, string concatenation (debug overlays use pre-allocated `CharArray`s).
+- Nullable or generic value classes: `Vec2?`, `List<Vec2>`, `Array<Vec2>`, `Any` parameters
+  receiving a `Vec2` → these **box**. Store vectors in `FloatArray`/`LongArray`.
+- Capturing lambdas created per frame (hoist them into fields / `remember` once).
+- `Brush.*Gradient(...)`, `Stroke(...)`, `Path()`, `Paint()`, `PathEffect` construction per frame.
+  Create once (`remember` or object fields) and mutate/reuse (`path.rewind()`).
+- Exceptions for control flow; `require`/`check` with message lambdas inside loops.
+- `java.util.Random`/`kotlin.random.Random` (non-portable sequences). Use the project's
+  seeded xorshift RNG (see `docs/GAME_DESIGN.md` §6).
+
+### 3.2 Required patterns
+- Math temporaries use `Vec2` (`@JvmInline value class` over a packed `Long`) — free on the stack.
+- Multi-value results use **caller-owned, pre-allocated out-parameters** (e.g. `Contact`).
+- Entity storage is **Structure-of-Arrays** in fixed-capacity pools (sizes in `docs/ARCHITECTURE.md`).
+- Removal is **swap-remove** (O(1)); iterate **backwards** when removing during iteration.
+- All per-frame Compose invalidation goes through a single draw-phase state read
+  (`frameTick`), never through recomposition.
+
+### 3.3 Verification
+- Hot-path math must be covered by an allocation probe test (see `CollisionMathTest.zeroAllocation_*`).
+- Any new hot-path function must be added to the probe loop or get its own probe test.
+
+---
+
+## 4. Determinism Rules
+
+- Simulation advances ONLY in fixed steps `FIXED_DT = 1/120 s`, with `SUBSTEPS = 4`
+  collision sub-steps. Rendering never mutates simulation state.
+- Frame delta is clamped to `MAX_FRAME_TIME = 0.05 s` before entering the accumulator.
+- Input events are buffered into a pre-allocated ring buffer and consumed at the start of the
+  next fixed step — never applied mid-step.
+- Rendering interpolates between previous and current state with
+  `alpha = accumulator / FIXED_DT`.
+- No wall-clock reads (`System.nanoTime`) inside systems; time comes from the loop only.
+
+---
+
+## 5. Kotlin Coding Standards
+
+- Kotlin official style, 4-space indent, max line length 120.
+- `explicitApi` is not enforced, but every public engine/domain symbol gets KDoc stating
+  units and coordinate space.
+- Small hot math helpers may be `inline` with `@Suppress("NOTHING_TO_INLINE")`.
+- Prefer `object` for stateless math (`CollisionMath`), `class` with primitive arrays for state.
+- No `!!` in production code. No `lateinit` in the hot path.
+- Floats only in simulation (`Float`, not `Double`). Use `kotlin.math` float overloads.
+- Mark tuning constants `const val` in `GameConfig`; never inline magic numbers in systems.
+- No placeholder code: no `TODO()`, `// TODO`, `...`, or stub bodies in committed code.
+  Unfinished work belongs in `docs/STATE_AND_TASKS.md`, not in source.
+
+---
+
+## 6. Testing Standards
+
+- Local JVM unit tests (`app/src/test`) with JUnit4 for all pure math and systems.
+- Float assertions always pass an explicit epsilon.
+- Every collision edge case (grazing, caps, degenerate segments, center-on-line, tunneling,
+  separating contacts, parry) has a named test.
+- Tests must not depend on Android framework classes; JVM-only APIs (e.g. `java.lang.management`)
+  are accessed reflectively because `android.jar` does not expose them at compile time.
+
+---
+
+## 7. Workflow Constraints
+
+- Phases execute strictly in order: 1 Math/Docs → 2 Pools/Loop/World → 3 Input/Physics/Render →
+  4 Director/Juice/HUD/Economy. Do not start a phase before the previous one is reviewed.
+- Each phase ends with: green tests, docs synced, handoff note written, then **pause for review**.
+- Never edit files outside the repository. Never weaken a test to make it pass — fix the code
+  or document the spec change.
+
+---
+
+## 8. Compose Phase Discipline & UX Engineering (`kotlin-ux-architect`)
+
+1. **Defer State Reads to the Lowest Phase:**
+   - Never read rapidly changing game state directly in the `@Composable` body.
+   - Use lambda modifiers for layout (`Modifier.offset { ... }`) and `Modifier.drawWithContent` / `Modifier.graphicsLayer` for draw updates to bypass Composition.
+2. **Immutable State & Stability:**
+   - Annotate all UI models with `@Immutable` or `@Stable`. Use `derivedStateOf` for discrete thresholds (e.g., `isLowInk`).
+3. **Multi-Pass Procedural Canvas Neon:**
+   - Render glow procedurally with 3 cached passes: Outer Glow (wide stroke, low alpha), Mid Core (medium stroke, accent), Hot Core (thin, near-white).
+4. **Historical Motion Event Sampling:**
+   - In `awaitPointerEventScope`, iterate `change.historical` before `change.position` to sample 120Hz–240Hz pointer events smoothly without missing curve samples.
+5. **Ergonomics & Typography:**
+   - All incrementing numerals (score, combo, altitude, ink percentage) MUST use `fontFeatureSettings = "tnum"` (tabular figures).
+
+---
+
+## 9. Kinetic Flow & Sensory Amplification (`kinetic-flow-architect`)
+
+1. **The 3-Tier Dopamine Clock:**
+   - *Micro-Clock (0.3s–1.5s):* Instant visual/auditory payoff on every swipe, deflection, and near-miss.
+   - *Meso-Clock (8s–20s):* Active parry windows, clutch ink refunds (+25%), and sawtooth wave director intensity (crunch vs harvest).
+   - *Macro-Clock (45s–120s):* Near-miss callouts on Game Over and sub-300ms instant retry (`TAP ANYWHERE TO RETRY` active within 350ms).
+2. **Sensory Amplification Pipeline:**
+   - On Perfect Parry: 28ms hit-stop freeze frame, +0.28 trauma, 24 directional neon shards, semitone pitch step (`1.0 + combo * 0.05`).
+   - Camera Shake: Quadratic trauma decay $\text{shake} = \text{trauma}^2$ multiplied by smooth 18Hz noise.
+3. **Cognitive Clarity at 120FPS:**
+   - Threat telegraphing: Top-bezel 350ms warning line before high-speed Needles spawn.
+   - Diegetic Ink Arc rendered directly around the Bubble's outer rim.
+
+---
+
+## 10. Arcade Economy & SDK Quarantine (`arcade-economy-architect`)
+
+1. **Flow-State Monetization:**
+   - ZERO banner ads. No unprompted interstitials on quick deaths (`runDuration < 45s`) or within the first 3 runs. Minimum 180s cooldown between non-opt-in transitions.
+   - 1-per-run Clutch Revive / EMP Surge with a 4.0s radial fuse on near-miss deaths (`score >= 60%` PB).
+2. **Soft Currency Prisms & Procedural Cosmetics:**
+   - Prisms awarded on harvest waves and combo milestones.
+   - Procedural cosmetic profiles (`ShieldSkin`, `BubbleSkin`) using zero-filesize shader parameter presets.
+3. **SDK Quarantine:**
+   - Domain and engine code MUST NEVER import ad or billing SDKs. All operations operate via the pure Kotlin `EconomyGateway` interface.
+   - Pre-load rewarded ads on `Dispatchers.IO` during idle menus.
+   - Always supply a `MockEconomyService` for local unit tests and instant dev workflows.
