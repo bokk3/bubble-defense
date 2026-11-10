@@ -186,6 +186,7 @@ object GameConfig {
 
     /** Default lifespan (s) of an intact shield segment before natural fade-out. */
     const val SEGMENT_LIFETIME: Float = 1.5f
+    const val SHIELD_LIFETIME: Float = SEGMENT_LIFETIME
 
     /** Maximum structural integrity of a newly committed shield segment. */
     const val SEGMENT_INTEGRITY: Float = 100f

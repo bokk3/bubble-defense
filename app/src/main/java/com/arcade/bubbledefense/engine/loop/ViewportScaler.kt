@@ -27,6 +27,9 @@ class ViewportScaler(
     var screenHeight: Float = initialScreenHeight
         private set
 
+    val screenWidthPx: Float inline get() = screenWidth
+    val screenHeightPx: Float inline get() = screenHeight
+
     /** Uniform scaling factor `s = min(Sw / 1000, Sh / 1800)`. */
     var scale: Float = 1f
         private set
@@ -108,6 +111,10 @@ class ViewportScaler(
     /** Converts a scalar distance from world units (wu) to screen pixels (px). */
     @Suppress("NOTHING_TO_INLINE")
     inline fun worldToScreenDist(worldDist: Float): Float = worldDist * scale
+
+    /** Scaled distance in screen pixels (px) from world units (wu). */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun scaleDistance(worldDist: Float): Float = worldDist * scale
 
     /** Converts a scalar distance from screen pixels (px) to world units (wu). */
     @Suppress("NOTHING_TO_INLINE")

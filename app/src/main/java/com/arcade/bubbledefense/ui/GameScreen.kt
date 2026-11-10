@@ -67,6 +67,7 @@ import kotlin.math.PI
  * - High-refresh gestures sampled sequentially via `historical` before `position`.
  * - Quarantined economy integration with 1-per-run Clutch Revive and 180s cooldown interstitials.
  */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun GameScreen(
     modifier: Modifier = Modifier,

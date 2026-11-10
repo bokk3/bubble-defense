@@ -20,3 +20,16 @@
 -keep class com.arcade.bubbledefense.domain.world.** {
     *;
 }
+
+# Preserve domain systems, config, and quarantined economy models
+-keep class com.arcade.bubbledefense.domain.config.** {
+    *;
+}
+
+-keep class com.arcade.bubbledefense.domain.systems.** {
+    *;
+}
+
+-keep class com.arcade.bubbledefense.domain.economy.** {
+    *;
+}
