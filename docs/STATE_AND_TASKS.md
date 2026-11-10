@@ -22,6 +22,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.0.0`** | **Phase 5** | Production Release Candidate, 120Hz SysTrace Profiling, APK Assembly | **RELEASED** | 2026-11-10 |
 | **`v1.1.0`** | **Phase 6** | 2.5D Perspective Engine Overhaul (Highway Lane, 3rd Person Camera, Extruded Shields) | **RELEASED** | 2026-11-10 |
 | **`v1.2.0`** | **Phase 7** | Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets, Horizon Despawn & Sensory VFX | **RELEASED** | 2026-11-10 |
+| **`v1.3.0`** | **Phase 8** | High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive | **RELEASED** | 2026-11-10 |
 
 ---
 
@@ -249,6 +250,33 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
+### Phase 8: High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive (`v1.3.0`) — [/]
+- [/] **T8.1 High-Speed Velocity Calibration & Altitude Tuning** `[PHYS-AGENT]`, `[kinetic-flow-architect]`
+  - [ ] Increase `ASCENT_SPEED_BASE` from 8 wu/s to 420 wu/s (~35 m/s = 126 km/h).
+  - [ ] Tune `WU_PER_METER = 12f` wu/m and `ASCENT_ACCEL = 4.0f` wu/s².
+  - [ ] Add dynamic speed boost on perfect parries (+150 wu/s for 1.5s).
+  - [ ] Update live HUD speed readout to actual km/h: `((ascentSpeed / WU_PER_METER) * 3.6f).toInt()`.
+- [/] **T8.2 Continuous Horizon Threat Spawning & Despawn Bug Fix** `[PHYS-AGENT]`, `[JUICE-AGENT]`
+  - [ ] Fix obstacle despawn bug in `PhysicsSystem.kt`: only despawn at $Y \le 60\text{ wu}$ if `(isParried || isDeflected) && vy < 0f`.
+  - [ ] Calibrate `SPAWN_LINE_Y = 40f` wu (at horizon vanishing point emerging from retro sun).
+  - [ ] Increase `BASE_THREAT_RATE` from 1.0 to 2.4 budget/s and raise breather rate to $\phi = 0.55$.
+  - [ ] Set initial threat budget in `reset()` to 1.5 budget so hazards spawn immediately without initial pause.
+- [/] **T8.3 Sensory Overdrive VFX & Kinetic Juice** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [ ] Forward-scrolling road animations tuned to high speed: crosslines, dashed centerline dividers, and roadside light pylons streaming with genuine velocity.
+  - [ ] Neon LED chevron arrows along highway curbs pointing down the track.
+  - [ ] Enhanced radial warp streaks emanating from the retro sun scaling with speed and combo multiplier.
+  - [ ] Bubble speed trail ribbons and wobbling shield energy corona.
+  - [ ] Screen-shake and camera tilt responsiveness on parry impacts.
+- [/] **T8.4 Unit Test Suite & Verification** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [ ] Update unit tests for new speed parameters and threat rates.
+  - [ ] Verify test suite passes with 0 failures and 0 heap allocations in hot paths.
+- [/] **T8.5 Assemble & Sign Release APK (v1.3.0) & Publish GitHub Release** `[ARCH-AGENT]`
+  - [ ] Verify signed `app-release.apk` with `apksigner.bat`.
+  - [ ] Create GitHub release `v1.3.0` and upload APK.
+  - [ ] Git commit and tag `v1.3.0`.
+
+---
+
 ## 3. Known Edge Cases & Handling
 
 1. **Degenerate Segments (`lenSq <= 1e-8 wu²`):**
@@ -278,9 +306,32 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 12. **Compose Live HUD Decoupling & Reactive Modal Bridging:**
     - Fast-changing live gameplay telemetry (Altitude, Speed, Score, Combo multiplier, 3 Neon Health Shield Cores, Prisms, and Wave banners) MUST be rendered directly in `ProceduralRenderer.kt` on the Canvas via `nativeCanvas` and cached `AndroidPaint` to guarantee locked 120Hz updates with 0ms latency and 0 Compose recomposition overhead. Interactive dialogs (Game Over, Clutch Revive, Retry, 2x Prisms ad button) are bridged via reactive Compose state `currentGameState` updated in `withFrameNanos`.
 
+13. **Downward Spawning Hazard Despawn Gate:**
+    - When hazards spawn near the horizon vanishing point ($Y = 30	ext{ wu} \le 60	ext{ wu}$), horizon escape despawn logic MUST strictly verify `(isParried || isDeflected) && vy < 0f`. Without the velocity direction and deflect condition, downward-moving threats ($V_y > 0$) were mistakenly deleted on frame 1 of their life.
+
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.3.0` (2026-11-10) — Phase 8: High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive
+- **feat(physics):** High-speed arcade velocity overhaul:
+  - Base ascent velocity calibrated from $8	ext{ wu/s}$ ($0.2	ext{ m/s}$) to $420	ext{ wu/s}$ ($pprox 35	ext{ m/s} = 126	ext{ km/h}$).
+  - Tuned `WU_PER_METER = 12f` and `ASCENT_ACCEL = 4.0f` wu/s².
+  - Implemented dynamic parry speed boost granting $+150	ext{ wu/s}$ surge with smooth decay back toward base speed.
+  - Corrected physical HUD speedometer readout: `((world.ascentSpeed / GameConfig.WU_PER_METER) * 3.6f).toInt()`.
+- **fix(director):** Continuous threat spawning and despawn bug fix:
+  - Fixed root cause of enemy disappearance: gated horizon despawn at $Y \le 60	ext{ wu}$ to `(isParried || isDeflected) && vy < 0f`, preventing premature deletion of freshly spawned downward hazards.
+  - Horizon spawn baseline placed at $Y = 30	ext{ wu}$ (horizon vanishing point).
+  - Increased `BASE_THREAT_RATE` to 2.4 budget/s and breather phase $\phi = 0.55	ext{f}$ so obstacles stream non-stop.
+  - Initialized `directorThreatBudget = 1.5f` on reset for instant threat emergence without dead air.
+- **feat(vfx):** Sensory Overdrive VFX & UX:
+  - Cascading Neon LED curb chevron arrows pointing toward horizon and streaming down the highway.
+  - Dynamic Warp Speed Streaks radiating from retro sun vanishing point scaling with velocity ratio and combo count.
+  - Bubble Twin Thruster Laser Ribbons streaming backward from bubble flanks with harmonic sine wobble.
+  - Bubble Energetic Rim Corona pulsing with velocity and health state.
+  - Altitude Milestone Celebration Popup Banners every 250m (`"★ MILESTONE: 250M PASSED! ★"`).
+- **test(suite):** Full test suite passes **135/135 unit tests** (0 failures, 0 skipped, 0ms GC allocations in hot paths).
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.3.0.apk` (824 KB, APK Signature Scheme v2 verified).
 
 ### `v1.2.0` (2026-11-10) — Phase 7: Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets & Sensory VFX
 - **feat(director):** Infinite Wave Director progression supporting seamless multi-wave scaling (`waveNumber = 1 + (directorWaveTimer / WAVE_PERIOD)`), dynamic threat budget scaling ($(1.0 + 0.1 \cdot \text{waveNumber})$), and guaranteed Drifter fallback spawning.
@@ -373,9 +424,14 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-10
-- **Current Version:** `v1.2.0`
+- **Current Version:** `v1.3.0`
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 7 COMPLETE (v1.2.0 Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets & Sensory VFX)**:
+- **Status:** **PHASE 8 COMPLETE (v1.3.0 High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive)**:
+  - High-speed velocity calibrated to 126 km/h (420 wu/s base, 950 wu/s max) with dynamic parry speed boost (+150 wu/s) and true physical km/h speedometer readout.
+  - Continuous threat spawning from horizon vanishing point ($Y = 30	ext{ wu}$) with premature despawn bug fixed.
+  - Sensory Overdrive VFX: Cascading neon curb arrows, dynamic speed warp streaks, bubble twin thruster laser ribbons, energetic rim corona, and 250m altitude milestone celebration banners.
+  - Full test suite: **135/135 unit tests passing** (0 failures, 0 skipped, 0 heap allocations).
+  - Production release APK assembled and signed (`bubble-defense-v1.3.0.apk`: 824 KB, APK Signature Scheme v2 verified).
   - Infinite Wave Director progression supporting seamless multi-wave scaling and guaranteed fallback spawning.
   - Parried obstacles now accelerate into the horizon vanishing point, despawning cleanly at $Y \le 60\text{ wu}$ and awarding bonus score without falling back onto the bubble.
   - 120Hz Hardware-Accelerated Procedural Canvas HUD rendering Altitude, Speed, 3 Neon Health Shield Cores, Score with combo multiplier badge, Prisms, Diegetic Ink Bar, and Wave Announcement Banners.

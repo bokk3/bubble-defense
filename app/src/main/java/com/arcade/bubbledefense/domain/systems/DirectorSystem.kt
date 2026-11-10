@@ -65,7 +65,7 @@ class DirectorSystem(
         // 1. Sawtooth Pacing Phase calculation & Infinite Wave Tracking
         val cycleTime = world.directorWaveTimer % GameConfig.WAVE_PERIOD
         val isCrunch = cycleTime < GameConfig.WAVE_CRUNCH_DURATION
-        val phi = if (isCrunch) 1.4f else 0.35f
+        val phi = if (isCrunch) 1.4f else 0.55f
 
         val calculatedWave = 1 + (world.directorWaveTimer / GameConfig.WAVE_PERIOD).toInt()
         if (calculatedWave != world.currentWave) {

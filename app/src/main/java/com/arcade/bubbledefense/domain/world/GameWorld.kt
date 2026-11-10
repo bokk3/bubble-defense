@@ -187,9 +187,9 @@ class GameWorld(initialSeed: Int = 1337) {
         slowMoTimer = 0f
 
         // Reset Director
-        directorThreatBudget = 0f
+        directorThreatBudget = 1.5f // Start with enough budget for immediate initial threat
         directorWaveTimer = 0f
-        directorSpawnCooldown = 0.5f // brief initial breather before first threat
+        directorSpawnCooldown = 0.15f // Brief instant before first threat emerges from horizon
         currentWave = 1
         wavePhaseName = "CRUNCH"
         waveAnnouncementTimer = 2.0f

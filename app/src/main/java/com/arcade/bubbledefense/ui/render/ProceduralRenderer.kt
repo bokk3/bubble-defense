@@ -434,6 +434,40 @@ class ProceduralRenderer {
             strokeWidth = 1.5f,
             cap = StrokeCap.Round
         )
+
+        // 5. Cascading Neon Curb Arrows (High-Speed Runway Guidance)
+        val arrowPeriod = 75f
+        val arrowScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % arrowPeriod
+        var arrowY = arrowScroll
+        while (arrowY <= cameraY) {
+            val depthScale = scaler.scaleLaneDepth(arrowY)
+            val arrowAlpha = (depthScale * 0.65f).coerceIn(0.08f, 0.75f)
+            val strokeW = (2f * depthScale).coerceAtLeast(1f)
+
+            // Left Curb Chevron pointing forward into horizon
+            val lApexX = scaler.worldLaneToScreenX(leftCurbX, arrowY)
+            val lApexY = scaler.worldLaneToScreenY(arrowY)
+            val lBase1X = scaler.worldLaneToScreenX(leftCurbX - 16f, arrowY + 18f)
+            val lBase1Y = scaler.worldLaneToScreenY(arrowY + 18f)
+            val lBase2X = scaler.worldLaneToScreenX(leftCurbX + 16f, arrowY + 18f)
+            val lBase2Y = scaler.worldLaneToScreenY(arrowY + 18f)
+
+            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(lBase1X, lBase1Y), Offset(lApexX, lApexY), strokeWidth = strokeW, cap = StrokeCap.Round)
+            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(lApexX, lApexY), Offset(lBase2X, lBase2Y), strokeWidth = strokeW, cap = StrokeCap.Round)
+
+            // Right Curb Chevron pointing forward into horizon
+            val rApexX = scaler.worldLaneToScreenX(rightCurbX, arrowY)
+            val rApexY = scaler.worldLaneToScreenY(arrowY)
+            val rBase1X = scaler.worldLaneToScreenX(rightCurbX - 16f, arrowY + 18f)
+            val rBase1Y = scaler.worldLaneToScreenY(arrowY + 18f)
+            val rBase2X = scaler.worldLaneToScreenX(rightCurbX + 16f, arrowY + 18f)
+            val rBase2Y = scaler.worldLaneToScreenY(arrowY + 18f)
+
+            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(rBase1X, rBase1Y), Offset(rApexX, rApexY), strokeWidth = strokeW, cap = StrokeCap.Round)
+            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(rApexX, rApexY), Offset(rBase2X, rBase2Y), strokeWidth = strokeW, cap = StrokeCap.Round)
+
+            arrowY += arrowPeriod
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -641,6 +675,47 @@ class ProceduralRenderer {
             size = Size(sbr * 1.8f, sbr * 0.45f)
         )
 
+        // 1.5. Twin Thruster Laser Ribbons Streaming Backward from Bubble Flanks
+        val trailLen = (sbr * (0.9f + (world.ascentSpeed / GameConfig.ASCENT_SPEED_BASE) * 0.7f)).coerceIn(sbr * 0.8f, sbr * 3.2f)
+        val leftFlankX = sbx - sbr * 0.65f
+        val rightFlankX = sbx + sbr * 0.65f
+        val flankY = sby + sbr * 0.25f
+
+        val trailWobbleL = sin(time * 22f) * 4f
+        val trailWobbleR = cos(time * 22f) * 4f
+
+        // Left Thruster Stream
+        drawScope.drawLine(
+            color = COLOR_CYAN.copy(alpha = 0.22f),
+            start = Offset(leftFlankX, flankY),
+            end = Offset(leftFlankX + trailWobbleL, flankY + trailLen),
+            strokeWidth = 9f,
+            cap = StrokeCap.Round
+        )
+        drawScope.drawLine(
+            color = COLOR_WHITE.copy(alpha = 0.65f),
+            start = Offset(leftFlankX, flankY),
+            end = Offset(leftFlankX + trailWobbleL, flankY + trailLen * 0.65f),
+            strokeWidth = 3f,
+            cap = StrokeCap.Round
+        )
+
+        // Right Thruster Stream
+        drawScope.drawLine(
+            color = COLOR_CYAN.copy(alpha = 0.22f),
+            start = Offset(rightFlankX, flankY),
+            end = Offset(rightFlankX + trailWobbleR, flankY + trailLen),
+            strokeWidth = 9f,
+            cap = StrokeCap.Round
+        )
+        drawScope.drawLine(
+            color = COLOR_WHITE.copy(alpha = 0.65f),
+            start = Offset(rightFlankX, flankY),
+            end = Offset(rightFlankX + trailWobbleR, flankY + trailLen * 0.65f),
+            strokeWidth = 3f,
+            cap = StrokeCap.Round
+        )
+
         // 2. Proximity Warning Ring
         val proximity = world.closestObstacleDistance
         if (proximity < 320f) {
@@ -717,6 +792,17 @@ class ProceduralRenderer {
             color = COLOR_WHITE.copy(alpha = 0.40f),
             radius = sbr * 0.20f,
             center = Offset(sbx - sbr * 0.35f, sby - sbr * 0.35f)
+        )
+
+        // Pass E: Energetic Rim Corona Pulse
+        val speedRatio = (world.ascentSpeed / GameConfig.ASCENT_SPEED_MAX).coerceIn(0f, 1f)
+        val coronaPulse = 0.5f + 0.5f * sin(time * 12f)
+        val coronaRadius = sbr * (1.14f + 0.08f * speedRatio + 0.04f * coronaPulse)
+        drawScope.drawCircle(
+            color = membraneColor.copy(alpha = 0.16f + 0.14f * speedRatio),
+            radius = coronaRadius,
+            center = Offset(sbx, sby),
+            style = strokeCoreThin
         )
 
         // 4. Inclined Diegetic Ink Ring (Tilted forward in perspective)
@@ -1273,29 +1359,30 @@ class ProceduralRenderer {
         val sunCx = sw * 0.5f
 
         // 1. Warp Speed Streaks during high velocity / combo
-        if (world.comboCount >= 2 || world.ascentSpeed > GameConfig.ASCENT_SPEED_BASE * 1.2f) {
-            val streakCount = 14
-            val streakAlpha = (world.comboCount * 0.08f).coerceIn(0.12f, 0.45f)
-            val time = world.gameTime * 8f
+        val speedFactor = (world.ascentSpeed / GameConfig.ASCENT_SPEED_BASE).coerceIn(1.0f, 3.5f)
+        val streakCount = (14 * speedFactor).toInt()
+        val streakAlpha = (0.16f * speedFactor + world.comboCount * 0.05f).coerceIn(0.15f, 0.65f)
+        val streakTime = world.gameTime * (6f + 4f * speedFactor)
 
-            for (s in 0 until streakCount) {
-                val angle = (s * (2f * PI.toFloat() / streakCount)) + sin(time + s) * 0.1f
-                val length = (100f + sin(time * 2f + s) * 60f).coerceAtLeast(40f)
-                val startR = 40f + (s * 17) % 60
-                val endR = startR + length
+        for (s in 0 until streakCount) {
+            val angle = (s * (2f * PI.toFloat() / streakCount)) + sin(streakTime + s) * 0.12f
+            val length = (80f * speedFactor + sin(streakTime * 2f + s) * 50f).coerceAtLeast(40f)
+            val startR = 30f + (s * 13) % 70
+            val endR = startR + length
 
-                val sx = sunCx + cos(angle) * startR
-                val sy = horizonY + sin(angle) * startR * 0.6f
-                val ex = sunCx + cos(angle) * endR
-                val ey = horizonY + sin(angle) * endR * 0.6f
+            val sx = sunCx + cos(angle) * startR
+            val sy = horizonY + sin(angle) * startR * 0.55f
+            val ex = sunCx + cos(angle) * endR
+            val ey = horizonY + sin(angle) * endR * 0.55f
 
-                drawScope.drawLine(
-                    color = COLOR_CYAN.copy(alpha = streakAlpha),
-                    start = Offset(sx, sy),
-                    end = Offset(ex, ey),
-                    strokeWidth = 2f
-                )
-            }
+            val strokeW = if (s % 3 == 0) 2.5f else 1.2f
+            val streakCol = if (s % 2 == 0) COLOR_CYAN else COLOR_WHITE
+            drawScope.drawLine(
+                color = streakCol.copy(alpha = streakAlpha),
+                start = Offset(sx, sy),
+                end = Offset(ex, ey),
+                strokeWidth = strokeW
+            )
         }
 
         // 2. Radial Parry Shockwave Rings
@@ -1363,7 +1450,7 @@ class ProceduralRenderer {
         hudPaintLeft.textSize = 12f * scale
         hudPaintLeft.color = 0xFF00F0FF.toInt()
         hudPaintLeft.alpha = 210
-        val kmh = (world.ascentSpeed * 0.15f).toInt()
+        val kmh = ((world.ascentSpeed / GameConfig.WU_PER_METER) * 3.6f).toInt()
         canvas.drawText("$kmh km/h", padX, topY + 68f * scale, hudPaintLeft)
 
         // 2. Top-Center: Neon Shield Health Cores & Wave Status
@@ -1486,6 +1573,41 @@ class ProceduralRenderer {
             hudPaintCenter.alpha = (230 * bannerAlpha).toInt().coerceIn(0, 255)
             val subMsg = if (world.wavePhaseName == "CRUNCH") "INCOMING THREATS — DEFEND TARGET" else "HARVEST VALLEY — COLLECT PRISMS"
             canvas.drawText(subMsg, cx, bannerY + 48f * scale, hudPaintCenter)
+        }
+
+        // 6. Altitude Milestone Celebration Banner (Every 250m)
+        val milestoneRem = world.altitudeMeters % 250f
+        if (world.altitudeMeters >= 240f && (milestoneRem < 15f || milestoneRem > 245f)) {
+            val milestoneVal = (((world.altitudeMeters + 10f) / 250f).toInt()) * 250
+            val mAlpha = if (milestoneRem < 15f) (1f - milestoneRem / 15f) else ((milestoneRem - 245f) / 5f)
+            val bannerY = scaler.camera.vanishingPointY + 80f * scale
+            val bannerW = sw * 0.85f
+            val bannerH = 50f * scale
+            val bannerLeft = (sw - bannerW) * 0.5f
+
+            drawScope.drawRoundRect(
+                color = Color(0xEE080F24).copy(alpha = mAlpha * 0.92f),
+                topLeft = Offset(bannerLeft, bannerY),
+                size = Size(bannerW, bannerH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * scale, 10f * scale)
+            )
+            drawScope.drawRoundRect(
+                color = COLOR_AMBER.copy(alpha = mAlpha),
+                topLeft = Offset(bannerLeft, bannerY),
+                size = Size(bannerW, bannerH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * scale, 10f * scale),
+                style = strokeRing
+            )
+
+            hudPaintCenter.textSize = 17f * scale
+            hudPaintCenter.color = 0xFFFFB800.toInt()
+            hudPaintCenter.alpha = (mAlpha * 255).toInt().coerceIn(0, 255)
+            canvas.drawText("★ MILESTONE: ${milestoneVal}M REACHED! ★", cx, bannerY + 28f * scale, hudPaintCenter)
+
+            hudPaintCenter.textSize = 11f * scale
+            hudPaintCenter.color = 0xFF00FF99.toInt()
+            hudPaintCenter.alpha = (mAlpha * 230).toInt().coerceIn(0, 255)
+            canvas.drawText("SPEED SURGE + BONUS SCORE AWARDED", cx, bannerY + 44f * scale, hudPaintCenter)
         }
     }
 }

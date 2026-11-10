@@ -56,6 +56,8 @@ import com.arcade.bubbledefense.engine.pool.InputRingBuffer
 import com.arcade.bubbledefense.ui.render.ProceduralRenderer
 import kotlinx.coroutines.isActive
 import kotlin.math.PI
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Main game screen composable for Bubble Defense.
@@ -101,6 +103,16 @@ fun GameScreen(
             fixedStepListener = { dt, _ ->
                 if (world.state == GameState.PLAYING || world.state == GameState.READY) {
                     world.gameTime += dt
+                    val targetBaseSpeed = min(
+                        GameConfig.ASCENT_SPEED_MAX,
+                        GameConfig.ASCENT_SPEED_BASE + GameConfig.ASCENT_ACCEL * world.gameTime
+                    )
+                    if (world.ascentSpeed < targetBaseSpeed) {
+                        world.ascentSpeed = targetBaseSpeed
+                    } else if (world.ascentSpeed > targetBaseSpeed) {
+                        world.ascentSpeed = max(targetBaseSpeed, world.ascentSpeed - 80f * dt)
+                    }
+
                     world.altitudeMeters += (world.ascentSpeed * dt) / GameConfig.WU_PER_METER
                     world.score = world.altitudeMeters.toInt() + world.bonusScore
                     if (world.score > world.highScore) {

@@ -30,8 +30,8 @@ object GameConfig {
     /** Bubble center Y in world units: `WORLD_HEIGHT * BUBBLE_NORMALIZED_Y`. */
     const val BUBBLE_CENTER_Y: Float = 1476f
 
-    /** Off-screen top spawn baseline coordinate (wu). */
-    const val SPAWN_LINE_Y: Float = -60f
+    /** Off-screen top spawn baseline coordinate (wu) emerging at 2.5D horizon vanishing point. */
+    const val SPAWN_LINE_Y: Float = 30f
 
     /** Despawn horizontal left bound (wu). */
     const val DESPAWN_MIN_X: Float = -150f
@@ -275,20 +275,20 @@ object GameConfig {
     const val WAVE_PERIOD: Float = 20f
     const val WAVE_CRUNCH_DURATION: Float = 14f
     const val WAVE_HARVEST_DURATION: Float = 6f
-    const val MAX_THREAT_BUDGET: Float = 8f
-    const val BASE_THREAT_RATE: Float = 1.0f
-    const val THREAT_RATE_ACCEL: Float = 0.045f
-    const val SPAWN_COOLDOWN_TIME: Float = 0.25f
+    const val MAX_THREAT_BUDGET: Float = 10f
+    const val BASE_THREAT_RATE: Float = 2.4f
+    const val THREAT_RATE_ACCEL: Float = 0.08f
+    const val SPAWN_COOLDOWN_TIME: Float = 0.20f
     const val THREAT_TELEGRAPH_TIME: Float = 0.350f
 
     // ---------------------------------------------------------------------------------------------
     // Scoring, Altitude & Combo Multipliers
     // ---------------------------------------------------------------------------------------------
 
-    const val ASCENT_SPEED_BASE: Float = 8f
-    const val ASCENT_ACCEL: Float = 0.06f
-    const val ASCENT_SPEED_MAX: Float = 30f
-    const val WU_PER_METER: Float = 40f
+    const val ASCENT_SPEED_BASE: Float = 420f
+    const val ASCENT_ACCEL: Float = 4.0f
+    const val ASCENT_SPEED_MAX: Float = 950f
+    const val WU_PER_METER: Float = 12f
 
     const val COMBO_TIMEOUT: Float = 3.0f
     const val COMBO_STEP: Float = 0.25f

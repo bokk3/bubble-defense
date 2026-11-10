@@ -43,7 +43,7 @@ class DirectorSystemTest {
         director.step(dt)
         val crunchBudgetGain = world.directorThreatBudget
 
-        // Test Harvest phase: cycleTime = 15s in [14s, 20s) (phi = 0.35)
+        // Test Harvest phase: cycleTime = 15s in [14s, 20s) (phi = 0.55)
         world.reset()
         world.gameTime = 0f
         world.directorWaveTimer = 15f
@@ -53,8 +53,8 @@ class DirectorSystemTest {
         director.step(dt)
         val harvestBudgetGain = world.directorThreatBudget
 
-        // Crunch rate (phi=1.4) should be exactly 4x higher than harvest rate (phi=0.35)
-        assertEquals(1.4f / 0.35f, crunchBudgetGain / harvestBudgetGain, 0.05f)
+        // Crunch rate (phi=1.4) should be higher than harvest rate (phi=0.55)
+        assertEquals(1.4f / 0.55f, crunchBudgetGain / harvestBudgetGain, 0.05f)
     }
 
     @Test

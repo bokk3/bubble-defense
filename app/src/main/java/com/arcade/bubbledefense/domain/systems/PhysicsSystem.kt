@@ -104,13 +104,12 @@ class PhysicsSystem(private val world: GameWorld) {
 
             // Despawn checks
             // 1. Horizon escape at top (deflected / parried into vanishing point)
-            if (oy <= 60f) {
-                if (isParried || isDeflected) {
-                    val bonus = (GameConfig.SCORE_CLEARED_BONUS * world.comboMultiplier).toInt()
-                    world.addScore(bonus)
-                    world.floatingTexts.spawn(ox, oy, -50f, 0.4f, 1.0f, FloatingTextPool.TEXT_PARRY)
-                    spawnSparkBurst(ox, oy, Vec2.UP, count = 8, isParry = true)
-                }
+            // Only despawn if moving UPWARD (-Y) towards the horizon!
+            if (oy <= 60f && (isParried || isDeflected) && world.obstacles.vy[i] < 0f) {
+                val bonus = (GameConfig.SCORE_CLEARED_BONUS * world.comboMultiplier).toInt()
+                world.addScore(bonus)
+                world.floatingTexts.spawn(ox, oy, -50f, 0.4f, 1.0f, FloatingTextPool.TEXT_PARRY)
+                spawnSparkBurst(ox, oy, Vec2.UP, count = 8, isParry = true)
                 world.obstacles.removeAt(i)
                 continue
             }
@@ -342,8 +341,9 @@ class PhysicsSystem(private val world: GameWorld) {
             world.triggerHitStop(GameConfig.HIT_STOP_PARRY_DURATION)
             world.addTrauma(GameConfig.TRAUMA_PARRY)
 
-            // Refill ink
+            // Refill ink and grant speed boost
             world.ink = min(GameConfig.INK_MAX, world.ink + GameConfig.PARRY_INK_REFUND)
+            world.ascentSpeed = min(GameConfig.ASCENT_SPEED_MAX, world.ascentSpeed + 150f)
 
             // Step combo
             world.comboCount++
