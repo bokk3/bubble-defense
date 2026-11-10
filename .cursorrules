@@ -13,10 +13,12 @@
 - Package root: `com.arcade.bubbledefense`.
 - Units everywhere in simulation code: **world units (wu)**, **seconds (s)**, **radians**.
   World space is a virtual `1000 x 1800` wu rectangle, origin top-left, **+Y points DOWN**.
-- Skills Integration: Active specialized architectural skills in `.antigravity/skills/`:
-  - `kinetic-flow-architect`: Flow state, dopamine clocks, juice matrix, sub-300ms retry.
-  - `kotlin-ux-architect`: 120Hz Compose phase hygiene, zero-alloc Canvas, gesture sampling.
-  - `arcade-economy-architect`: Flow-state monetization, procedural skins, SDK quarantine.
+- Modular Rules & Skills Integration:
+  - Rules: `.agents/rules/` (`01-zero-alloc-hot-loop`, `02-docs-and-tasks`, `03-compose-and-threading`, `04-physics-and-math`, `05-economy-quarantine`).
+  - Skills: Active specialized architectural skills in `.agents/skills/` (and `.antigravity/skills/`):
+    - `kinetic-flow-architect`: Flow state, dopamine clocks, juice matrix, sub-300ms retry.
+    - `kotlin-ux-architect`: 120Hz Compose phase hygiene, zero-alloc Canvas, gesture sampling.
+    - `arcade-economy-architect`: Flow-state monetization, procedural skins, SDK quarantine.
 
 ---
 

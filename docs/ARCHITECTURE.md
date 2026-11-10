@@ -257,3 +257,21 @@ sequenceDiagram
 - `CollisionMath` — stateless `object`; multi-value results are written into a caller-owned
   `Contact` instance (one per system, allocated at init).
 - Full equations: `docs/PHYSICS_SPEC.md`.
+
+---
+
+## 9. Antigravity Customization Architecture (Modular Rules & Skills)
+
+The project adheres to the official Google Antigravity customization specification:
+- **Root Directory Rule (`AGENTS.md`):** Root-level hub loaded into every session prompt (< 24 KB), containing the core multi-agent personas and the master Rule & Skill Registry.
+- **Modular Rules (`.agents/rules/`):** Scoped rule modules with YAML frontmatter triggers:
+  - `01-zero-alloc-hot-loop.md` (`trigger: glob: **/src/**, **/*.kt`)
+  - `02-docs-and-tasks.md` (`trigger: always_on`)
+  - `03-compose-and-threading.md` (`trigger: glob: **/ui/**, **/render/**`)
+  - `04-physics-and-math.md` (`trigger: glob: **/engine/**, **/domain/systems/**`)
+  - `05-economy-quarantine.md` (`trigger: glob: **/domain/economy/**, **/billing/**`)
+- **Active Skills (`.agents/skills/`):** Modular procedural workflows loaded via progressive disclosure:
+  - `arcade-economy-architect`: Flow-state monetization, soft currency sinks, clutch revive runbook.
+  - `kinetic-flow-architect`: 3-tier dopamine clock, sensory juice matrix, hit-stop freeze frames, trauma camera shake.
+  - `kotlin-ux-architect`: Compose phase discipline, 120Hz graphics, gesture sampling, procedural shaders.
+  (Synchronized with `.antigravity/skills/` for dual discovery).

@@ -16,6 +16,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 |---|---|---|---|---|
 | **`v0.1.0`** | **Phase 1** | Docs Architecture, Zero-Alloc Math Core (`Vec2`, `CollisionMath`), Math Tests | **RELEASED** | 2026-11-10 |
 | **`v0.2.0`** | **Phase 2** | Pre-allocated SoA Pools, Virtual Viewport Scaler, Fixed Timestep Game Loop | **RELEASED** | 2026-11-10 |
+| **`v0.2.1`** | **Arch Refactor** | Antigravity Modular Rules (`.agents/rules/`), Skills Migration (`.agents/skills/`), Master Registry Hub | **RELEASED** | 2026-11-10 |
 | **`v0.3.0`** | **Phase 3** | Tactile Shield Input, Physics Sub-step System, Zero-Alloc Compose Canvas Renderer | **PLANNED** | Pending |
 | **`v0.4.0`** | **Phase 4** | Wave Director, Juice System, Flow Economy, Game Over & Sub-300ms Instant Retry | **PLANNED** | Pending |
 | **`v1.0.0`** | **Phase 5** | Production Release Candidate, 120Hz SysTrace Profiling, APK Assembly | **PLANNED** | Pending |
@@ -91,6 +92,11 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
   - [x] Implement `FixedGameLoopTest.kt` verifying deterministic step accumulation and hit-stop pause mechanics.
   - [x] Verify zero heap allocations in `FixedGameLoop` hot path over 50,000 steps.
   - [x] Total test suite: 79/79 passing unit tests (0 failures, 0 skipped).
+- [x] **T2.8 Antigravity Rules & Skills Refactoring (`v0.2.1`)** `[ARCH-AGENT]`
+  - [x] Establish `.agents/rules/` with 5 modular YAML-triggered rule modules (`01-zero-alloc-hot-loop`, `02-docs-and-tasks`, `03-compose-and-threading`, `04-physics-and-math`, `05-economy-quarantine`).
+  - [x] Migrate skills to canonical `.agents/skills/` (`arcade-economy-architect`, `kinetic-flow-architect`, `kotlin-ux-architect`) with progressive disclosure frontmatter.
+  - [x] Refactor root `AGENTS.md` as Master Directory Rule (< 24 KB) with complete Rule & Skill Registry.
+  - [x] Synchronize `.antigravity/skills/` and `.cursorrules` for dual discovery compatibility.
 
 ---
 
@@ -188,6 +194,12 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ## 4. Change Log & Semantic Version History
 
+### `v0.2.1` (2026-11-10) — Antigravity Rules & Skills Architecture Refactor
+- **chore(arch):** Establish `.agents/rules/` containing 5 modular triggered rule files (`01-zero-alloc-hot-loop.md`, `02-docs-and-tasks.md`, `03-compose-and-threading.md`, `04-physics-and-math.md`, `05-economy-quarantine.md`).
+- **chore(skills):** Migrate active architectural skills to canonical `.agents/skills/` (`arcade-economy-architect`, `kinetic-flow-architect`, `kotlin-ux-architect`) with progressive disclosure YAML frontmatter.
+- **docs(hub):** Refactor root `AGENTS.md` as Master Directory Rule (< 24 KB) with top-level Rule & Skill Registry, multi-agent personas, and clickable links.
+- **chore(compat):** Synchronize `.cursorrules` and maintain `.antigravity/skills/` for dual discovery compatibility.
+
 ### `v0.2.0` (2026-11-10) — Phase 2: Memory Pools, Virtual Viewport & Fixed Timestep World
 - **feat(infra):** Set up `settings.gradle.kts`, `build.gradle.kts`, `app/build.gradle.kts`, `AndroidManifest.xml`, and ProGuard rules.
 - **feat(config):** Implement canonical tuning constants and balance knobs in `domain/config/GameConfig.kt`.
@@ -209,7 +221,7 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-10
-- **Current Version:** `v0.2.0`
+- **Current Version:** `v0.2.1`
 - **Active Persona:** [ARCH-AGENT] & [PHYS-AGENT]
-- **Status:** Phase 2 complete and verified with 79/79 passing unit tests (0 allocations, 0ms GC overhead).
+- **Status:** Architectural refactor complete. Rules modularized into `.agents/rules/`, skills organized in `.agents/skills/`, and root `AGENTS.md` operating as master directory hub under 24 KB. 79/79 passing unit tests (0 allocations, 0ms GC overhead).
 - **Next Task:** Phase 3 — Task T3.1 (`ShieldInputSystem.kt`), Task T3.2 (`PhysicsSystem.kt`), Task T3.3 (`ProceduralRenderer.kt`), Task T3.4 (`GameScreen.kt`).
