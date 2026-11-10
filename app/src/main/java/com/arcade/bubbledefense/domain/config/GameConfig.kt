@@ -169,6 +169,9 @@ object GameConfig {
     /** Rate of ink regeneration per second after cooldown completes (0 to 100 in 1.82s). */
     const val INK_REGEN_RATE: Float = 55f
 
+    /** Instant ink/energy refund granted upon executing a Perfect Parry (wu equivalent: 25% of max). */
+    const val PARRY_INK_REFUND: Float = 25f
+
     /** Minimum ink required to initiate a new stroke segment (wu equivalent: 50 wu). */
     const val INK_MIN_TO_START: Float = 4f
 
