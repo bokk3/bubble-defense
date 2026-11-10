@@ -328,4 +328,38 @@ object GameConfig {
     const val INTERSTITIAL_MIN_RUNS_BEFORE_FIRST: Int = 3
     const val PRISMS_PER_COMBO_MILESTONE: Int = 1
     const val COMBO_MILESTONE_STEP: Int = 5
+
+    // ---------------------------------------------------------------------------------------------
+    // 2.5D Perspective Camera & Highway Lane Tuning
+    // ---------------------------------------------------------------------------------------------
+
+    /** Default enablement of 2.5D perspective projection mode. */
+    const val CAMERA_PERSPECTIVE_ENABLED: Boolean = true
+
+    /** Normalized vertical screen position of the horizon vanishing point (below top HUD). */
+    const val CAMERA_HORIZON_RATIO_Y: Float = 0.28f
+
+    /** Longitudinal world Y position of the camera station (wu). */
+    const val CAMERA_Y_WU: Float = 1850f
+
+    /** Elevation height of the camera station above the ground plane (wu). */
+    const val CAMERA_HEIGHT_WU: Float = 450f
+
+    /** Focal depth distance from camera to bubble anchor (1850 - 1476 = 374 wu). */
+    const val CAMERA_BUBBLE_DEPTH_D: Float = CAMERA_Y_WU - BUBBLE_CENTER_Y
+
+    /** Left curb boundary of the playable highway lane in world units (wu). */
+    const val LANE_LEFT_CURB_X: Float = 100f
+
+    /** Right curb boundary of the playable highway lane in world units (wu). */
+    const val LANE_RIGHT_CURB_X: Float = 900f
+
+    /** Playable highway lane width (wu): `LANE_RIGHT_CURB_X - LANE_LEFT_CURB_X`. */
+    const val LANE_WIDTH_WU: Float = LANE_RIGHT_CURB_X - LANE_LEFT_CURB_X
+
+    /** Vertical extrusion height of neon shield energy walls above the ground lane (wu). */
+    const val SHIELD_EXTRUSION_HEIGHT_WU: Float = 80f
+
+    /** Longitudinal spacing between forward-scrolling floor crosslines (wu). */
+    const val FLOOR_CROSSLINE_SPACING_WU: Float = 100f
 }

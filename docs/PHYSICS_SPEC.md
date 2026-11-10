@@ -267,3 +267,16 @@ invulnerable (`BUBBLE_INVULN_TIME = 1.0 s`). The bubble is not a physics body (n
 | `MAX_TOI_ITERATIONS` | 2 | per sub-step |
 | `COLLISION_EPSILON` | 1e-6 | wu |
 | `DEGENERATE_SEGMENT_LENGTH_SQ` | 1e-8 | wu² |
+
+---
+
+## 10. 2.5D Perspective Projection Duality
+
+The 480Hz narrowphase simulation remains entirely in 2D Virtual World Space ($1000 \times 1800\text{ wu}$). The 2.5D third-person view is a bijective projective mapping executed purely in the render and gesture input systems:
+
+1. **Longitudinal Axis ($+Y$):** Represents distance down the lane toward the player/camera ($Y = 1850\text{ wu}$).
+2. **Deflection / Parry ($-\Delta V_y$):** Slashing a shield transfers upward swipe velocity $-V_y$, which in perspective accelerates the obstacle away into the distance towards the horizon.
+3. **Continuous Collision Detection (CCD):** Remains independent of perspective distortion. High-speed Needles moving at $3600\text{ wu/s}$ are verified through sub-stepping ($7.5\text{ wu/sub-step} \ll 26\text{ wu}$ collision capsule thickness) and exact TOI swept calculation.
+4. **Touch Gesture Raycasting:** Screen coordinates $(sx, sy)$ unproject onto the ground plane $(X, Y)$ via closed-form algebraic inverse:
+   $$Z = \frac{K}{\max(sy, V_y + 8) - V_y}, \quad Y = 1850 - Z, \quad X = 500 + \frac{(sx - V_x) \cdot Z}{D \cdot \text{laneScaleX}}$$
+

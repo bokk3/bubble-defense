@@ -69,6 +69,23 @@ $$\text{screen} = \text{world}\cdot s + (o_x, o_y), \qquad
 | Bubble center | `(0.5, 0.82)` | `(500, 1476)` |
 | Spawn line | `y = -0.033` | `y = -60` |
 | Despawn bounds | — | `x ∈ [-150, 1150]`, `y ∈ [-400, 1950]` |
+| Camera eye station | — | `(500, 1850)`, elevation `450 wu` |
+| Highway curb bounds | — | Left `x = 100`, Right `x = 900` |
+
+### 2.3 PerspectiveCamera (2.5D Third-Person Highway Lane)
+
+Bubble Defense uses a mathematical duality: the 480Hz physics engine runs in the 2D Virtual World Space (`1000 x 1800 wu`), while rendering and pointer inputs project into a **2.5D third-person forward-looking highway lane view** via `PerspectiveCamera`:
+- **Longitudinal Depth ($Z$):** $Z(Y) = Y_{\text{cam}} - Y$ where $Y_{\text{cam}} = 1850\text{ wu}$.
+- **Focal Depth Reference ($D$):** $D = Y_{\text{cam}} - Y_{\text{bubble}} = 374\text{ wu}$.
+- **Depth Scale Factor:** $s(Z) = D / Z$ ($1.0$ at bubble, $<1.0$ towards horizon).
+- **Forward Screen Projection:**
+  $$sx = V_x + (X - 500f) \cdot s(Z) \cdot \text{laneScaleX}$$
+  $$sy = V_y + \frac{K}{Z} - h \cdot s(Z) \cdot \text{heightScaleY}$$
+- **Reverse Screen Unprojection (Ground Raycasting):**
+  $$Z = \frac{K}{\max(sy, V_y + 8f) - V_y}, \quad Y = Y_{\text{cam}} - Z$$
+  $$X = 500f + \frac{(sx - V_x) \cdot Z}{D \cdot \text{laneScaleX}}$$
+- **Zero-Allocation Guarantee:** Pure single-cycle float arithmetic, verified via reflective allocation probe.
+
 
 ---
 

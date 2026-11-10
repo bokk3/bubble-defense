@@ -54,17 +54,23 @@ class ViewportScaler(
     var viewportPixelHeight: Float = GameConfig.WORLD_HEIGHT
         private set
 
+    /** 2.5D perspective camera engine for third-person forward-looking highway lane view. */
+    val camera: PerspectiveCamera = PerspectiveCamera(initialScreenWidth, initialScreenHeight)
+
     init {
         update(initialScreenWidth, initialScreenHeight)
     }
 
     /**
      * Updates viewport dimensions when the physical Canvas size changes.
-     * Computes the uniform letterbox scale factor and offsets.
+     * Computes the uniform letterbox scale factor and offsets, and updates the 2.5D perspective camera.
      */
     fun update(width: Float, height: Float) {
         screenWidth = width
         screenHeight = height
+
+        // Update underlying 2.5D perspective camera
+        camera.update(width, height)
 
         if (width <= 0f || height <= 0f) {
             scale = 1f
@@ -135,6 +141,55 @@ class ViewportScaler(
     @Suppress("NOTHING_TO_INLINE")
     inline fun screenToWorld(screenPos: Vec2): Vec2 =
         Vec2(screenToWorldX(screenPos.x), screenToWorldY(screenPos.y))
+
+    // ---------------------------------------------------------------------------------------------
+    // 2.5D Perspective Projection Methods (Highway Lane Space)
+    // ---------------------------------------------------------------------------------------------
+
+    /** Projects horizontal world X on highway lane to screen pixels at given depth Y. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun worldLaneToScreenX(worldX: Float, worldY: Float): Float =
+        camera.worldToScreenX(worldX, worldY)
+
+    /** Projects vertical world Y and optional elevation height to screen pixels. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun worldLaneToScreenY(worldY: Float, heightWu: Float = 0f): Float =
+        camera.worldToScreenY(worldY, heightWu)
+
+    /** Unprojects screen pixel X coordinate at screen Y to highway ground plane world X. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun screenToWorldLaneX(screenX: Float, screenY: Float): Float =
+        camera.screenToWorldX(screenX, screenY)
+
+    /** Unprojects screen pixel Y coordinate to highway ground plane world Y. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun screenToWorldLaneY(screenY: Float): Float =
+        camera.screenToWorldY(screenY)
+
+    /** Scales a distance or radius at a given depth Y in 2.5D perspective. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun scaleLaneDistance(worldDist: Float, worldY: Float): Float =
+        camera.scaleDistance(worldDist, worldY)
+
+    /** Returns the 2.5D perspective depth scale factor at world Y (1.0 at bubble, <1.0 toward horizon). */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun scaleLaneDepth(worldY: Float): Float =
+        camera.scaleAtDepth(worldY)
+
+    /** Projects packed world coordinates [worldPos] to screen pixels in 2.5D perspective. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun worldLaneToScreen(worldPos: Vec2): Vec2 =
+        camera.worldToScreen(worldPos)
+
+    /** Unprojects packed screen pixels [screenPos] to world coordinates on the 3D ground plane. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun screenToWorldLane(screenPos: Vec2): Vec2 =
+        camera.screenToWorld(screenPos)
+
+    /** Returns true if the screen Y coordinate is safely below the horizon line where drawing is allowed. */
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun isDrawableScreenY(screenY: Float): Boolean =
+        camera.isDrawableScreenY(screenY)
 
     /** Returns `true` if the specified world coordinate lies within the `[0, 1000] x [0, 1800]` world rect. */
     fun isInsideWorld(worldX: Float, worldY: Float): Boolean =

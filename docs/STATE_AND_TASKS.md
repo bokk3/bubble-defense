@@ -20,6 +20,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v0.3.0`** | **Phase 3** | Tactile Shield Input, Physics Sub-step System, Zero-Alloc Compose Canvas Renderer | **RELEASED** | 2026-11-10 |
 | **`v0.4.0`** | **Phase 4** | Wave Director, Juice System, Flow Economy, Game Over & Sub-300ms Instant Retry | **RELEASED** | 2026-11-10 |
 | **`v1.0.0`** | **Phase 5** | Production Release Candidate, 120Hz SysTrace Profiling, APK Assembly | **RELEASED** | 2026-11-10 |
+| **`v1.1.0`** | **Phase 6** | 2.5D Perspective Engine Overhaul (Highway Lane, 3rd Person Camera, Extruded Shields) | **RELEASED** | 2026-11-10 |
 
 ---
 
@@ -183,6 +184,31 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
   - [x] Verify rule file sizes: all rules strictly under 24,000 bytes.
   - [x] Total test suite passes: 123/123 passing unit tests (0 failures, 0 skipped).
 
+### Phase 6: 2.5D Perspective Engine Overhaul (`v1.1.0`) — [COMPLETED]
+- [x] **T6.1 Zero-Alloc Perspective Camera Engine & Tests** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement `engine/loop/PerspectiveCamera.kt` with closed-form projection, unprojection raycasting, depth scaling, and horizon clipping.
+  - [x] Implement `PerspectiveCameraTest.kt` verifying round-trip bijection, horizon clamping, and zero heap allocations.
+- [x] **T6.2 Viewport Scaler & Input Pipeline Integration** `[ARCH-AGENT]`
+  - [x] Integrate `PerspectiveCamera` into `ViewportScaler.kt` with backward-compatible 2D fallback.
+  - [x] Update `GameScreen.kt` pointer gesture sampling to unproject touch events to the 3D ground lane plane via `screenToWorldLane`.
+- [x] **T6.3 Procedural 2.5D Highway Lane & Synthwave Horizon** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Implement synthwave horizon with retro skybox and warning laser beams.
+  - [x] Implement converging neon highway curbs and forward-scrolling floor crosslines with $1/Z$ perspective compression driven by altitude speed.
+  - [x] Implement center lane dividers and shoulder dash markings.
+- [x] **T6.4 Extruded 3D Neon Energy Walls** `[JUICE-AGENT]`
+  - [x] Calculate ground and top-elevated projected vertices for each active shield segment.
+  - [x] Render glowing translucent energy barrier quad with hot core laser crest and forward parry chevron.
+- [x] **T6.5 3D Bubble Orb & Depth-Sorted Obstacles** `[JUICE-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement in-place zero-allocation depth sorting for active obstacles.
+  - [x] Render 3D shaded Drifter spheres with ground shadows.
+  - [x] Render 3D supersonic Needle spikes with rear jet trails.
+  - [x] Render 3D extruded Crusher hexagonal monoliths and rotating Splitter octahedrons.
+  - [x] Render 3D spherical bubble orb with specular highlight, soft-body wobble, ground shadow, and inclined diegetic ink ring.
+- [x] **T6.6 3D Camera Trauma, Verification & APK Assembly** `[ARCH-AGENT]`, `[JUICE-AGENT]`
+  - [x] Implement 3D camera trauma (pitch bobbing, lateral sway, roll banking, FOV punch-in).
+  - [x] Verify test suite (130/130 tests passing, 0 failures, 0 heap allocations).
+  - [x] Assemble updated release candidate APK (832 KB) and update living documentation.
+
 ---
 
 ## 3. Known Edge Cases & Handling
@@ -205,10 +231,32 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
    - Reflective `Method.invoke(bean, threadId)` causes a 48-byte allocation (Long primitive boxing + varargs array). Zero-allocation hot path assertions accommodate this measurement overhead by validating that $\Delta \text{bytes} \le 128\text{ bytes}$ over 5,000 iterations (proving 0 heap allocations per step).
 8. **Dense Swap-Remove Loop Compaction:**
    - When iterating pools where elements are removed via swap-remove (such as expiring shield segments or collided obstacles), the loop index must NOT increment when an item is removed at `i`, because the last active entity was swapped into slot `i`.
+9. **Perspective Horizon Singularity ($sy \to V_y$, $Z \to \infty$):**
+   - Touches at or above horizon $V_y$ must be clamped to $sy \ge V_y + 10\text{ px}$ to prevent division by zero in unprojection math. Gestures initiating above $V_y + 20\text{ px}$ are ignored.
+10. **Zero-Allocation 2.5D Depth Sorting:**
+   - Sorting obstacles from far to near ($Y$ ascending) must avoid object allocations (no `List<T>`, no `Comparator`, no boxing). We use an in-place insertion/comb sort on a pre-allocated primitive array `IntArray(128)` indexing active obstacles.
+11. **Sub-Horizon Segment Clipping:**
+   - Any shield or obstacle line segment with an endpoint behind the camera ($Y > Y_{\text{cam}}$) or past the horizon ($Y < 0$) is geometrically clipped to prevent projection wrap-around.
 
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.1.0` (2026-11-10) — Phase 6: 2.5D Perspective Engine Overhaul
+- **feat(camera):** Implement `PerspectiveCamera.kt` providing closed-form zero-allocation perspective projection and ground-plane touch raycasting unprojection. Calibrated with vanishing point at 28% screen height, focal reference depth $D = 374\text{ wu}$, and lane width $86\%$ screen width.
+- **feat(scaler):** Integrate `PerspectiveCamera` into `ViewportScaler.kt` (`worldLaneToScreenX/Y`, `screenToWorldLaneX/Y`, `scaleLaneDepth`, `scaleLaneDistance`) with backward-compatible 2D fallback.
+- **feat(render):** Overhaul `ProceduralRenderer.kt` into a 2.5D synthwave arcade perspective:
+  - 2.5D highway lane with converging cyan neon curbs, forward-scrolling floor crosslines with $1/Z$ perspective compression driven by altitude speed, and dashed centerline dividers.
+  - Extruded 3D neon energy shield barricades ($H_{\text{wall}} = 80\text{ wu}$) with translucent quad fills, ground foundation lasers, top hot-core laser crests, vertical end pylons, and directional swipe parry chevrons.
+  - 3D spherical bubble orb with ground drop-shadow, multi-harmonic soft-body wobble, directional specular highlight, and an inclined diegetic ink ring tilted at $20^\circ$.
+  - In-place zero-allocation depth sorting for incoming obstacles (`IntArray(128)` insertion sort).
+  - 3D procedural obstacles: shaded Drifter spheres, supersonic Needle arrowheads with rear jet trails, extruded Crusher hexagonal monoliths, and rotating Splitter octahedrons.
+  - 3D threat telegraph laser guides, depth-scaled particles, and floating combat text.
+- **feat(ui):** Update `GameScreen.kt` pointer gesture sampling to unproject touch events to the 3D ground lane plane via `screenToWorldLaneX/Y`, enforce horizon boundary safety ($sy \ge V_y + 16\text{ px}$), and center trauma shake and FOV zoom punch-in around the horizon vanishing point.
+- **test(camera):** Implement `PerspectiveCameraTest.kt` (7 tests) verifying bubble anchor projection, monotonic depth scaling, ground-plane round-trip bijection across 5,000 randomized points, horizon singularity safety, and zero heap allocations on hot paths.
+- **test(suite):** Full test suite passes **130/130 unit tests** (0 failures, 0 skipped, 0ms GC allocations in hot paths).
+- **build(release):** Assemble optimized production release candidate APK (`app-release-unsigned.apk`: 832 KB) with R8 minification and resource shrinking.
+- **docs(specs):** Synchronize living specifications (`ARCHITECTURE.md`, `PHYSICS_SPEC.md`, `GAME_DESIGN.md`, `STATE_AND_TASKS.md`) with 2.5D perspective engine geometry.
 
 ### `v1.0.0` (2026-11-10) — Phase 5: Production Release Candidate & Performance Audit
 - **perf(engine):** Implement `Macrobenchmark120HzTest.kt` verifying sustained 120Hz multi-system simulation (15,000 steps, >2 minutes of gameplay) with zero heap allocations ($\Delta \le 128$ bytes over 10,000 steps).
@@ -263,7 +311,16 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-10
-- **Current Version:** `v1.0.0`
+- **Current Version:** `v1.1.0`
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **ALL PHASES COMPLETE (v1.0.0 Release Candidate)**. Full end-to-end game engine operational: zero-alloc packed vector math, SoA pools, 480Hz narrowphase physics, tactile gesture pipeline, zero-alloc Compose Canvas procedural renderer, sawtooth wave director, sensory amplification matrix, quarantined flow economy, and production release APK assembled (816 KB). 123/123 passing unit tests (0 allocations, 0 dropped frames).
-- **Next Task:** Production deployment and app store distribution.
+- **Status:** **PHASE 6 COMPLETE (v1.1.0 2.5D Perspective Engine Overhaul)**. The entire 2D canvas has been transformed into a 2.5D third-person forward-looking highway lane arcade runner:
+  - 100% deterministic 480Hz narrowphase physics engine completely preserved in Virtual World Space.
+  - Closed-form zero-allocation perspective projection and ground-plane touch unprojection.
+  - 2.5D synthwave highway with converging neon curbs and forward-scrolling velocity crosslines with $1/Z$ perspective compression.
+  - Extruded 3D neon energy shield barricades with translucent barrier quads and hot-core laser crests.
+  - 3D spherical bubble orb with ground drop-shadow, soft-body wobble, and inclined diegetic ink ring.
+  - Depth-sorted 3D procedural obstacles (Drifter spheres, supersonic Needle cones, Crusher hexagonal monoliths, Splitter octahedrons).
+  - 3D camera trauma (pitch, lateral sway, roll banking, FOV punch-in centered on horizon).
+  - Full test suite: **130/130 unit tests passing** (0 failures, 0 skipped, 0 heap allocations).
+  - Production release candidate APK assembled (`app-release-unsigned.apk`: 832 KB).
+- **Next Task:** Live device validation, playtesting, and app store deployment.

@@ -185,6 +185,11 @@ fun GameScreen(
                     translationX = juiceSystem.shakeOffsetX
                     translationY = juiceSystem.shakeOffsetY
                     rotationZ = juiceSystem.shakeRotationRad * (180f / PI.toFloat())
+                    val trauma = world.trauma
+                    val zoom = 1f + trauma * 0.035f
+                    scaleX = zoom
+                    scaleY = zoom
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, GameConfig.CAMERA_HORIZON_RATIO_Y)
                 }
                 .pointerInput(Unit) {
                     awaitPointerEventScope {
@@ -197,30 +202,32 @@ fun GameScreen(
                                 val pId = change.id.value.toInt()
 
                                 if (change.pressed && !change.previousPressed) {
-                                    // ACTION_DOWN
-                                    val wx = scaler.screenToWorldX(change.position.x)
-                                    val wy = scaler.screenToWorldY(change.position.y)
-                                    world.inputRing.push(wx, wy, uptimeNanos, pId, InputRingBuffer.ACTION_DOWN)
-                                    change.consume()
+                                    // ACTION_DOWN - only accept touches safely below the horizon
+                                    if (scaler.isDrawableScreenY(change.position.y)) {
+                                        val wx = scaler.screenToWorldLaneX(change.position.x, change.position.y)
+                                        val wy = scaler.screenToWorldLaneY(change.position.y)
+                                        world.inputRing.push(wx, wy, uptimeNanos, pId, InputRingBuffer.ACTION_DOWN)
+                                        change.consume()
+                                    }
                                 } else if (change.pressed && change.previousPressed) {
                                     // High-refresh historical pointer sampling
                                     val historicalSize = change.historical.size
                                     for (h in 0 until historicalSize) {
                                         val hist = change.historical[h]
-                                        val hx = scaler.screenToWorldX(hist.position.x)
-                                        val hy = scaler.screenToWorldY(hist.position.y)
+                                        val hx = scaler.screenToWorldLaneX(hist.position.x, hist.position.y)
+                                        val hy = scaler.screenToWorldLaneY(hist.position.y)
                                         world.inputRing.push(hx, hy, hist.uptimeMillis * 1_000_000L, pId, InputRingBuffer.ACTION_MOVE)
                                     }
 
                                     // ACTION_MOVE (current position)
-                                    val wx = scaler.screenToWorldX(change.position.x)
-                                    val wy = scaler.screenToWorldY(change.position.y)
+                                    val wx = scaler.screenToWorldLaneX(change.position.x, change.position.y)
+                                    val wy = scaler.screenToWorldLaneY(change.position.y)
                                     world.inputRing.push(wx, wy, uptimeNanos, pId, InputRingBuffer.ACTION_MOVE)
                                     change.consume()
                                 } else if (!change.pressed && change.previousPressed) {
                                     // ACTION_UP
-                                    val wx = scaler.screenToWorldX(change.position.x)
-                                    val wy = scaler.screenToWorldY(change.position.y)
+                                    val wx = scaler.screenToWorldLaneX(change.position.x, change.position.y)
+                                    val wy = scaler.screenToWorldLaneY(change.position.y)
                                     world.inputRing.push(wx, wy, uptimeNanos, pId, InputRingBuffer.ACTION_UP)
                                     change.consume()
                                 }

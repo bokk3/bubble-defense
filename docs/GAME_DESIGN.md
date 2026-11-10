@@ -198,9 +198,18 @@ Parallax layers scroll by `altitude × WU_PER_METER × factor`:
 
 | Layer | Factor | Content |
 |---|---|---|
-| Far | 0.15 | star field (precomputed 96 points) |
-| Mid | 0.40 | neon grid horizon lines every 240 wu |
-| Near | 0.80 | drifting cloud wisps (12 procedural blobs) |
+| Far | 0.15 | star field (precomputed 36 points) in sky above horizon |
+| Mid | 0.40 | synthwave neon horizon laser glow and dawn gradient |
+| Near | 1.00 | 2.5D highway lane with converging curbs and 1/Z velocity crosslines |
+
+### 7.1 2.5D Highway Lane & Extruded Laser Shield Barricades
+- **Horizon Line:** Placed at 28% screen height ($V_y = 0.28 \cdot H_{\text{screen}}$), preserving 72% of the screen for the highway lane and gesture drawing.
+- **Converging Curbs:** Left curb at $X = 100\text{ wu}$ and Right curb at $X = 900\text{ wu}$ recede into the horizon vanishing point with multi-pass cyan bloom.
+- **Forward-Scrolling Velocity Crosslines:** Spaced every $100\text{ wu}$, scrolling forward down the lane driven by altitude ascent speed ($1.5 \times \text{altitudeMeters}$). Optical compression ($1/Z$) intensifies kinetic speed perception.
+- **Extruded 3D Neon Shields:** Drawn strokes are extruded vertically into $80\text{ wu}$ neon energy walls with translucent barrier fills, ground laser foundation lines, top hot-core laser crests, vertical end pylons, and directional swipe parry chevrons.
+- **3D Shaded Bubble Target:** Shaded sphere with ground drop-shadow, multi-harmonic soft-body wobble, top-left specular highlight, and an inclined diegetic ink ring tilted at $20^\circ$.
+- **3D Procedural Obstacles:** Depth-sorted far-to-near in-place ($0$ allocations). Shaded Drifter spheres, supersonic Needle arrowheads with rear jet trails, extruded Crusher hexagonal prisms, and rotating Splitter octahedrons.
+
 
 ---
 
