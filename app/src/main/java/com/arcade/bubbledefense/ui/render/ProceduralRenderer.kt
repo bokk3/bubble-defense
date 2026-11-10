@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import com.arcade.bubbledefense.domain.config.GameConfig
+import com.arcade.bubbledefense.domain.economy.BubbleSkin
+import com.arcade.bubbledefense.domain.economy.ShieldSkin
 import com.arcade.bubbledefense.domain.world.GameWorld
 import com.arcade.bubbledefense.engine.loop.ViewportScaler
 import com.arcade.bubbledefense.engine.pool.FloatingTextPool
@@ -101,6 +103,12 @@ class ProceduralRenderer {
         textAlign = AndroidPaint.Align.CENTER
     }
 
+    /** Active equipped procedural shield cosmetic skin. */
+    var activeShieldSkin: ShieldSkin = ShieldSkin.CYBER_CYAN
+
+    /** Active equipped procedural bubble cosmetic skin. */
+    var activeBubbleSkin: BubbleSkin = BubbleSkin.CLASSIC_NEON
+
     /**
      * Renders the complete game state into the provided [drawScope].
      *
@@ -134,7 +142,10 @@ class ProceduralRenderer {
         // 6. Draw Falling Obstacles (Procedural Geometry)
         drawObstacles(drawScope, world, scaler)
 
-        // 7. Draw Floating Combat Text
+        // 7. Draw Top-Bezel Warning Telegraphs (Needles & Splitters incoming)
+        drawTelegraphs(drawScope, world, scaler)
+
+        // 8. Draw Floating Combat Text
         drawFloatingTexts(drawScope, world, scaler)
     }
 
@@ -260,7 +271,7 @@ class ProceduralRenderer {
             // Chromatic transition based on structural integrity: Cyan -> Magenta -> Orange
             val integrityRatio = (integrity / GameConfig.SEGMENT_INTEGRITY).coerceIn(0f, 1f)
             val baseColor = when {
-                integrityRatio > 0.60f -> COLOR_CYAN
+                integrityRatio > 0.60f -> Color(activeShieldSkin.primaryColorArgb)
                 integrityRatio > 0.30f -> COLOR_MAGENTA
                 else -> COLOR_AMBER
             }
@@ -362,25 +373,28 @@ class ProceduralRenderer {
         bubblePath.close()
 
         // Pass A: Translucent Inner Fill
+        val membraneColor = Color(activeBubbleSkin.membraneColorArgb)
+        val auraColor = Color(activeBubbleSkin.auraColorArgb)
+
         val bubbleColor = if (world.bubbleInvulnTimer > 0f) {
             val flash = 0.5f + 0.5f * sin(time * 30f)
             COLOR_WHITE.copy(alpha = 0.25f * flash)
         } else {
-            COLOR_CYAN.copy(alpha = 0.08f)
+            auraColor
         }
         drawScope.drawPath(bubblePath, color = bubbleColor, style = Fill)
 
         // Pass B: Outer Glow Ring
         drawScope.drawPath(
             bubblePath,
-            color = COLOR_CYAN.copy(alpha = 0.20f),
+            color = membraneColor.copy(alpha = 0.20f),
             style = strokeGlowWide
         )
 
         // Pass C: Bright Neon Perimeter
         drawScope.drawPath(
             bubblePath,
-            color = COLOR_CYAN,
+            color = membraneColor,
             style = strokeCoreThin
         )
 
@@ -604,6 +618,68 @@ class ProceduralRenderer {
 
         drawScope.drawPath(obstaclePath, color = baseColor, style = strokeCoreThin)
         drawScope.drawPath(obstaclePath, color = COLOR_WHITE, style = strokeWhiteCore)
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Top-Bezel Threat Telegraph Warning Indicators
+    // ---------------------------------------------------------------------------------------------
+
+    private fun drawTelegraphs(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler
+    ) {
+        val count = world.telegraphCount
+        if (count == 0) return
+
+        val scale = scaler.scale
+        val topBezelY = scaler.worldToScreenY(0f)
+
+        for (i in 0 until count) {
+            val sx = scaler.worldToScreenX(world.telegraphX[i])
+            val timer = world.telegraphTimer[i]
+            val type = world.telegraphType[i]
+            val lifeRatio = (timer / GameConfig.THREAT_TELEGRAPH_TIME).coerceIn(0f, 1f)
+
+            // Rapid 24Hz flashing pulse
+            val pulse = 0.5f + 0.5f * sin((GameConfig.THREAT_TELEGRAPH_TIME - timer) * 40f)
+            val alpha = (0.4f + 0.6f * pulse) * (0.3f + 0.7f * lifeRatio)
+
+            val color = when (type) {
+                GameConfig.TYPE_NEEDLE -> COLOR_RED
+                GameConfig.TYPE_SPLITTER -> COLOR_GREEN
+                else -> COLOR_AMBER
+            }
+
+            // Vertical guide beam downward from top bezel
+            val beamLength = 90f * scale
+            drawScope.drawLine(
+                color = color.copy(alpha = alpha * 0.35f),
+                start = Offset(sx, topBezelY),
+                end = Offset(sx, topBezelY + beamLength),
+                strokeWidth = 2f * scale
+            )
+
+            // Downward pointing threat chevron
+            val chevronSize = (14f + 4f * pulse) * scale
+            scratchPath.rewind()
+            scratchPath.moveTo(sx - chevronSize, topBezelY + 4f * scale)
+            scratchPath.lineTo(sx, topBezelY + chevronSize + 4f * scale)
+            scratchPath.lineTo(sx + chevronSize, topBezelY + 4f * scale)
+
+            // Glow pass
+            drawScope.drawPath(
+                scratchPath,
+                color = color.copy(alpha = alpha * 0.40f),
+                style = strokeGlowMid
+            )
+            // Core pass
+            drawScope.drawPath(
+                scratchPath,
+                color = COLOR_WHITE.copy(alpha = alpha),
+                style = strokeCoreThin
+            )
+        }
     }
 
     // ---------------------------------------------------------------------------------------------

@@ -260,21 +260,27 @@ class PhysicsSystemTest {
         )
 
         // Warm up JIT
-        for (i in 0 until 1000) {
-            physicsSystem.stepSubstep(GameConfig.SUB_DT)
+        for (i in 0 until 3000) {
+            if (world.shieldSegments.count == 0) {
+                world.shieldSegments.spawn(100f, 800f, 900f, 800f, 0f, 0f, 1, 0)
+            }
             if (world.obstacles.count == 0) {
                 world.obstacles.spawn(500f, 400f, 100f, 200f, 25f, 1f, 0.8f, GameConfig.TYPE_DRIFTER)
             }
+            physicsSystem.stepSubstep(GameConfig.SUB_DT)
         }
 
         val before = AllocationProbe.allocatedBytes()
 
         val iterations = 5000
         for (i in 1..iterations) {
-            physicsSystem.stepSubstep(GameConfig.SUB_DT)
+            if (world.shieldSegments.count == 0) {
+                world.shieldSegments.spawn(100f, 800f, 900f, 800f, 0f, 0f, 1, 0)
+            }
             if (world.obstacles.count == 0) {
                 world.obstacles.spawn(500f, 400f, 50f, 150f, 25f, 1f, 0.8f, GameConfig.TYPE_DRIFTER)
             }
+            physicsSystem.stepSubstep(GameConfig.SUB_DT)
         }
 
         val after = AllocationProbe.allocatedBytes()

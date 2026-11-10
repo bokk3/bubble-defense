@@ -319,6 +319,11 @@ class PhysicsSystem(private val world: GameWorld) {
             world.comboMultiplier = min(GameConfig.COMBO_MAX_MULTIPLIER, 1.0f + world.comboCount * GameConfig.COMBO_STEP)
             world.comboTimer = GameConfig.COMBO_TIMEOUT
 
+            // Award soft currency Prism on combo milestone (every 5 combo levels)
+            if (world.comboCount % GameConfig.COMBO_MILESTONE_STEP == 0) {
+                world.prismsCollected += GameConfig.PRISMS_PER_COMBO_MILESTONE
+            }
+
             val bonus = if (obsType == GameConfig.TYPE_CRUSHER) {
                 (GameConfig.SCORE_CRUSHER_PARRY_BONUS * world.comboMultiplier).toInt()
             } else {

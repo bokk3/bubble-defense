@@ -18,7 +18,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v0.2.0`** | **Phase 2** | Pre-allocated SoA Pools, Virtual Viewport Scaler, Fixed Timestep Game Loop | **RELEASED** | 2026-11-10 |
 | **`v0.2.1`** | **Arch Refactor** | Antigravity Modular Rules (`.agents/rules/`), Skills Migration (`.agents/skills/`), Master Registry Hub | **RELEASED** | 2026-11-10 |
 | **`v0.3.0`** | **Phase 3** | Tactile Shield Input, Physics Sub-step System, Zero-Alloc Compose Canvas Renderer | **RELEASED** | 2026-11-10 |
-| **`v0.4.0`** | **Phase 4** | Wave Director, Juice System, Flow Economy, Game Over & Sub-300ms Instant Retry | **PLANNED** | Pending |
+| **`v0.4.0`** | **Phase 4** | Wave Director, Juice System, Flow Economy, Game Over & Sub-300ms Instant Retry | **RELEASED** | 2026-11-10 |
 | **`v1.0.0`** | **Phase 5** | Production Release Candidate, 120Hz SysTrace Profiling, APK Assembly | **PLANNED** | Pending |
 
 ---
@@ -136,32 +136,34 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
-### Phase 4: Wave Director, Obstacle Archetypes, Juice & Flow Economy (`v0.4.0`)
-- [ ] **T4.1 Sawtooth Wave Director (`DirectorSystem`)** `[JUICE-AGENT]`, `[PHYS-AGENT]`
-  - [ ] Implement `domain/systems/DirectorSystem.kt` with seeded xorshift32 deterministic RNG.
-  - [ ] Sawtooth wave rhythm: 14s High-Intensity Crunch vs 6s Breather / Harvest Valley.
-  - [ ] Dynamic threat budget $\dot{B}(t) = \lambda(t) \cdot \phi(t)$ and archetype unlocking schedule.
-  - [ ] High-speed Needle and Splitter top-bezel warning telegraph (350ms pulsing chevron).
-  - [ ] Soft currency Prism spawning during harvest valleys.
-- [ ] **T4.2 Sensory Amplification Matrix (`JuiceSystem`)** `[JUICE-AGENT]`, `[kinetic-flow-architect]`
-  - [ ] Implement `domain/systems/JuiceSystem.kt`.
-  - [ ] 28ms Hit-Stop freeze frame on Perfect Parry.
-  - [ ] Quadratic camera trauma shake ($\text{shake} = \text{trauma}^2$) driven by 18Hz smooth noise.
-  - [ ] Directional particle inheritance: spawn line fragments and sparks inheriting obstacle reflection velocity.
-  - [ ] Shepard-tone combo audio modulation (`1.0 + combo * 0.05`).
-  - [ ] Pooled floating combat text popups (`PARRY!`, `+50`, `CLOSE CALL!`) with scale-pop spring damping.
-- [ ] **T4.3 Flow-State Monetization & Quarantined SDK (`EconomyGateway`)** `[ECON-AGENT]`, `[arcade-economy-architect]`
-  - [ ] Define pure Kotlin `EconomyGateway` and `RewardPlacement` interfaces in `domain/economy/`.
-  - [ ] Implement 1-per-run Clutch Revive / EMP Surge with 4.0s radial fuse on near-miss deaths.
-  - [ ] Implement procedural cosmetic profiles (`ShieldSkin`, `BubbleSkin`) with zero asset overhead.
-  - [ ] Implement `MockEconomyService` for offline instant testing.
-  - [ ] Enforce zero banner ads and 180s minimum interstitial cooldown.
-- [ ] **T4.4 Main Activity, Game Over Flow & Sub-300ms Instant Retry** `[ARCH-AGENT]`, `[kinetic-flow-architect]`
-  - [ ] Implement `MainActivity.kt` with edge-to-edge window insets and immersive mode.
-  - [ ] Game Over screen with near-miss milestone highlight and high score persistence (`SharedPreferences`).
-  - [ ] Sub-300ms instant retry: `TAP ANYWHERE TO RETRY` active within 350ms of bubble pop with in-place pool reset.
-- [ ] **T4.5 Phase 4 Full Loop Verification** `[ARCH-AGENT]`
-  - [ ] Verify full gameplay loop: Start &rarr; Play &rarr; Parry &rarr; Game Over &rarr; Instant Retry.
+### Phase 4: Wave Director, Obstacle Archetypes, Juice & Flow Economy (`v0.4.0`) — [COMPLETED]
+- [x] **T4.1 Sawtooth Wave Director (`DirectorSystem`)** `[JUICE-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement `domain/systems/DirectorSystem.kt` with seeded xorshift32 deterministic RNG.
+  - [x] Sawtooth wave rhythm: 14s High-Intensity Crunch vs 6s Breather / Harvest Valley.
+  - [x] Dynamic threat budget $\dot{B}(t) = \lambda(t) \cdot \phi(t)$ and archetype unlocking schedule.
+  - [x] High-speed Needle and Splitter top-bezel warning telegraph (350ms pulsing chevron).
+  - [x] Soft currency Prism spawning during harvest valleys.
+- [x] **T4.2 Sensory Amplification Matrix (`JuiceSystem`)** `[JUICE-AGENT]`, `[kinetic-flow-architect]`
+  - [x] Implement `domain/systems/JuiceSystem.kt`.
+  - [x] 28ms Hit-Stop freeze frame on Perfect Parry.
+  - [x] Quadratic camera trauma shake ($\text{shake} = \text{trauma}^2$) driven by 18Hz smooth noise.
+  - [x] Directional particle inheritance: spawn line fragments and sparks inheriting obstacle reflection velocity.
+  - [x] Shepard-tone combo audio modulation (`1.0 + combo * 0.05`).
+  - [x] Pooled floating combat text popups (`PARRY!`, `+50`, `CLOSE CALL!`) with scale-pop spring damping.
+- [x] **T4.3 Flow-State Monetization & Quarantined SDK (`EconomyGateway`)** `[ECON-AGENT]`, `[arcade-economy-architect]`
+  - [x] Define pure Kotlin `EconomyGateway` and `RewardPlacement` interfaces in `domain/economy/`.
+  - [x] Implement 1-per-run Clutch Revive / EMP Surge with 4.0s radial fuse on near-miss deaths.
+  - [x] Implement procedural cosmetic profiles (`ShieldSkin`, `BubbleSkin`) with zero asset overhead.
+  - [x] Implement `MockEconomyService` for offline instant testing.
+  - [x] Enforce zero banner ads and 180s minimum interstitial cooldown.
+- [x] **T4.4 Main Activity, Game Over Flow & Sub-300ms Instant Retry** `[ARCH-AGENT]`, `[kinetic-flow-architect]`
+  - [x] Implement `MainActivity.kt` with edge-to-edge window insets and immersive mode.
+  - [x] Game Over screen with near-miss milestone highlight and high score persistence.
+  - [x] Sub-300ms instant retry: `TAP ANYWHERE TO RETRY` active within 350ms of bubble pop with in-place pool reset.
+- [x] **T4.5 Phase 4 Full Loop Verification** `[ARCH-AGENT]`
+  - [x] Verify full gameplay loop: Start &rarr; Play &rarr; Parry &rarr; Game Over &rarr; Instant Retry.
+  - [x] Unit test suites: `DirectorSystemTest.kt`, `JuiceSystemTest.kt`, `EconomyGatewayTest.kt`.
+  - [x] Full test suite passes: 119/119 unit tests passing with zero heap allocations in hot paths.
 
 ---
 
@@ -200,6 +202,15 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ## 4. Change Log & Semantic Version History
 
+### `v0.4.0` (2026-11-10) — Phase 4: Wave Director, Juice System & Flow Economy
+- **feat(director):** Implement `DirectorSystem.kt` with seeded xorshift32 PRNG, 20s Sawtooth wave cycle (14s Crunch @ $\phi=1.4$ vs 6s Harvest @ $\phi=0.35$), dynamic threat budget $\dot{B}(t)$, archetype unlocking schedule ($t=0, 20, 45, 75$), top-bezel warning telegraphs (350ms), and soft currency Prism generation during harvest valleys.
+- **feat(juice):** Implement `JuiceSystem.kt` with quadratic camera trauma shake ($\text{shake} = \text{trauma}^2$ at 18Hz), close call proximity detection (<80 wu triggering 80ms slow-mo @ 0.25x dt and combat text), Shepard-tone combo audio modulation formula, directional particle inheritance, and hit-stop triggers.
+- **feat(economy):** Implement `EconomyGateway.kt`, `RewardPlacement`, `RewardResult`, `CosmeticProfile.kt` (`ShieldSkin`, `BubbleSkin`), and `MockEconomyService.kt` with 180s interstitial cooldown gating, 60% PB clutch revive eligibility (1 per run), and 2x prism doubler.
+- **feat(render):** Update `ProceduralRenderer.kt` with `drawTelegraphs` (pulsing chevrons and downward threat guide lasers) and dynamic cosmetic skin coloring.
+- **feat(ui):** Update `GameScreen.kt` with director/juice execution, camera shake graphicsLayer, Game Over Clutch Revive radial fuse dialog (4.0s), 2x Prism bounty doubler, tabular numerals (`tnum`), and sub-300ms instant retry.
+- **feat(app):** Update `MainActivity.kt` with edge-to-edge window insets and sticky immersive full-screen arcade mode (`BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`).
+- **test(systems):** Implement `DirectorSystemTest.kt` (8 tests), `JuiceSystemTest.kt` (7 tests), `EconomyGatewayTest.kt` (5 tests). Total test suite passes **119/119 unit tests** with zero heap allocations in hot paths.
+
 ### `v0.3.0` (2026-11-10) — Phase 3: Tactile Shield Input, Physics Solver & Procedural Renderer
 - **feat(input):** Implement `ShieldInputSystem.kt` with high-refresh gesture sampling (120Hz-240Hz), EMA swipe velocity filtering, min/max segment decimation and subdivision, ink drain, 0.4s cooldown gating, and segment lifecycle decay.
 - **feat(physics):** Implement `PhysicsSystem.kt` stepping at 480Hz narrowphase sub-steps with semi-implicit Euler integration, 10x18 uniform grid broadphase, circle-capsule narrowphase solver, anti-sinking positional projection, Crusher 60% integrity drain & recoil, Splitter diamond fracturing, and Bubble collision detection.
@@ -235,7 +246,7 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-10
-- **Current Version:** `v0.3.0`
-- **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT]
-- **Status:** Phase 3 complete and verified. Shield input gesture pipeline, 480Hz narrowphase physics solver, zero-alloc Compose Canvas procedural renderer, diegetic HUD, and MainActivity are operational. 99/99 passing unit tests (0 allocations, 0ms GC overhead).
-- **Next Task:** Phase 4 — Task T4.1 (`DirectorSystem.kt` sawtooth wave director), Task T4.2 (`JuiceSystem.kt` sensory matrix & Shepard tone), Task T4.3 (`EconomyGateway.kt` & cosmetic skins), Task T4.4 (sub-300ms Game Over flow).
+- **Current Version:** `v0.4.0`
+- **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
+- **Status:** Phase 4 complete and verified. Sawtooth AI wave director, sensory juice amplification matrix, quarantined flow economy, procedural cosmetic presets, immersive mode, and sub-300ms Game Over / Clutch Revive retry loop are operational. 119/119 passing unit tests (0 allocations, 0ms GC overhead).
+- **Next Task:** Phase 5 — Task T5.1 (120Hz Zero-Jank Macrobenchmark & SysTrace audit), Task T5.2 (release build assembly), Task T5.3 (final living docs audit).

@@ -2,6 +2,7 @@ package com.arcade.bubbledefense.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +38,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arcade.bubbledefense.domain.config.GameConfig
+import com.arcade.bubbledefense.domain.economy.BubbleSkin
+import com.arcade.bubbledefense.domain.economy.EconomyGateway
+import com.arcade.bubbledefense.domain.economy.MockEconomyService
+import com.arcade.bubbledefense.domain.economy.RewardPlacement
+import com.arcade.bubbledefense.domain.economy.RewardResult
+import com.arcade.bubbledefense.domain.economy.ShieldSkin
+import com.arcade.bubbledefense.domain.systems.DirectorSystem
+import com.arcade.bubbledefense.domain.systems.JuiceSystem
 import com.arcade.bubbledefense.domain.systems.PhysicsSystem
 import com.arcade.bubbledefense.domain.systems.ShieldInputSystem
 import com.arcade.bubbledefense.domain.world.GameState
@@ -46,8 +56,6 @@ import com.arcade.bubbledefense.engine.pool.InputRingBuffer
 import com.arcade.bubbledefense.ui.render.ProceduralRenderer
 import kotlinx.coroutines.isActive
 import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * Main game screen composable for Bubble Defense.
@@ -57,11 +65,13 @@ import kotlin.math.sin
  * - Frame invalidation runs inside the Draw Phase driven by [FixedGameLoop.frameTick].
  * - Tabular figures (`tnum`) applied to all numerical readouts to eliminate layout jank.
  * - High-refresh gestures sampled sequentially via `historical` before `position`.
+ * - Quarantined economy integration with 1-per-run Clutch Revive and 180s cooldown interstitials.
  */
 @Composable
 fun GameScreen(
     modifier: Modifier = Modifier,
-    initialSeed: Int = 1337
+    initialSeed: Int = 1337,
+    economyGateway: EconomyGateway = remember { MockEconomyService() }
 ) {
     // 1. Long-lived state instances (allocated once per screen lifecycle)
     val world = remember { GameWorld(initialSeed) }
@@ -70,6 +80,14 @@ fun GameScreen(
 
     val inputSystem = remember { ShieldInputSystem(world) }
     val physicsSystem = remember { PhysicsSystem(world) }
+    val directorSystem = remember { DirectorSystem(world, initialSeed) }
+    val juiceSystem = remember { JuiceSystem(world) }
+
+    // Sync procedural cosmetic skins
+    renderer.activeShieldSkin = ShieldSkin.findById(economyGateway.equippedShieldSkinId)
+    renderer.activeBubbleSkin = BubbleSkin.findById(economyGateway.equippedBubbleSkinId)
+
+    var deathProcessed by remember { mutableStateOf(false) }
 
     // Frame interpolation alpha
     var renderAlpha by remember { mutableStateOf(0f) }
@@ -86,10 +104,42 @@ fun GameScreen(
                     if (world.score > world.highScore) {
                         world.highScore = world.score
                     }
+                    // Step wave director
+                    directorSystem.step(dt)
                 }
-                // Step input and physics systems
+                // Step input, physics, and juice systems
                 inputSystem.step(dt)
                 physicsSystem.stepFrame(dt)
+                juiceSystem.step(dt)
+
+                // Handle Game Over and Clutch Revive Fuse
+                if (world.state == GameState.GAME_OVER) {
+                    if (!deathProcessed) {
+                        deathProcessed = true
+                        if (!world.reviveUsedThisRun && economyGateway.isClutchReviveEligible(world)) {
+                            world.reviveEligible = true
+                            world.clutchReviveFuseTimer = GameConfig.CLUTCH_REVIVE_FUSE_SECONDS
+                        } else {
+                            world.reviveEligible = false
+                            world.clutchReviveFuseTimer = 0f
+                        }
+                        economyGateway.recordRunCompleted(
+                            runDurationSeconds = world.gameTime,
+                            score = world.score,
+                            parries = world.perfectParriesTotal,
+                            prismsEarned = world.prismsCollected
+                        )
+                    }
+
+                    if (world.clutchReviveFuseTimer > 0f) {
+                        world.clutchReviveFuseTimer -= dt
+                        if (world.clutchReviveFuseTimer <= 0f) {
+                            world.reviveEligible = false
+                        }
+                    }
+                } else if (world.state == GameState.PLAYING) {
+                    deathProcessed = false
+                }
             },
             frameListener = { _, alpha ->
                 renderAlpha = alpha
@@ -121,33 +171,19 @@ fun GameScreen(
         )
     }
 
-    // Camera Trauma Shake calculation
-    val trauma = world.trauma
-    val shakeIntensity = trauma * trauma
-    val time = world.gameTime
-    val shakeOffsetX = if (shakeIntensity > 0f) {
-        sin(time * GameConfig.SHAKE_NOISE_FREQUENCY_HZ * (2f * PI.toFloat())) * shakeIntensity * GameConfig.MAX_SHAKE_OFFSET_PX
-    } else 0f
-    val shakeOffsetY = if (shakeIntensity > 0f) {
-        cos(time * GameConfig.SHAKE_NOISE_FREQUENCY_HZ * 1.3f * (2f * PI.toFloat())) * shakeIntensity * GameConfig.MAX_SHAKE_OFFSET_PX
-    } else 0f
-    val shakeRotation = if (shakeIntensity > 0f) {
-        sin(time * GameConfig.SHAKE_NOISE_FREQUENCY_HZ * 0.7f * (2f * PI.toFloat())) * shakeIntensity * GameConfig.MAX_SHAKE_ROTATION_RAD
-    } else 0f
-
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(ProceduralRenderer.COLOR_BG)
     ) {
-        // 3. Procedural Canvas with Zero-Alloc DrawScope
+        // 3. Procedural Canvas with Zero-Alloc DrawScope & Trauma Camera Shake
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    translationX = shakeOffsetX
-                    translationY = shakeOffsetY
-                    rotationZ = shakeRotation * (180f / PI.toFloat())
+                    translationX = juiceSystem.shakeOffsetX
+                    translationY = juiceSystem.shakeOffsetY
+                    rotationZ = juiceSystem.shakeRotationRad * (180f / PI.toFloat())
                 }
                 .pointerInput(Unit) {
                     awaitPointerEventScope {
@@ -216,7 +252,7 @@ fun GameScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Score & Altitude
+                // Altitude
                 Column {
                     Text(
                         text = "ALTITUDE",
@@ -234,7 +270,7 @@ fun GameScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Score Readout
+                // Score Readout & Soft Currency Prisms
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "SCORE",
@@ -246,6 +282,12 @@ fun GameScreen(
                         text = "${world.score}",
                         color = ProceduralRenderer.COLOR_WHITE,
                         fontSize = 24.sp,
+                        style = tnumStyle
+                    )
+                    Text(
+                        text = "PRISMS: ${world.prismsCollected}",
+                        color = ProceduralRenderer.COLOR_GREEN,
+                        fontSize = 12.sp,
                         style = tnumStyle
                     )
                 }
@@ -293,33 +335,18 @@ fun GameScreen(
             }
         }
 
-        // 5. Game Over Instant Retry Overlay
+        // 5. Game Over Overlay with Clutch Revive & Sub-300ms Instant Retry
         if (world.state == GameState.GAME_OVER) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f))
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                for (i in 0 until event.changes.size) {
-                                    val change = event.changes[i]
-                                    if (change.pressed && !change.previousPressed) {
-                                        // Sub-300ms Instant Retry: In-place pool reset
-                                        world.reset()
-                                        inputSystem.reset()
-                                        world.state = GameState.PLAYING
-                                        change.consume()
-                                        break
-                                    }
-                                }
-                            }
-                        }
-                    },
+                    .background(Color.Black.copy(alpha = 0.75f)),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                ) {
                     Text(
                         text = "BUBBLE POPPED",
                         color = ProceduralRenderer.COLOR_MAGENTA,
@@ -335,19 +362,104 @@ fun GameScreen(
                         style = tnumStyle
                     )
                     Text(
-                        text = "HIGH SCORE: ${world.highScore}",
+                        text = "SCORE: ${world.score} | HIGH: ${world.highScore}",
                         color = ProceduralRenderer.COLOR_CYAN,
                         fontSize = 16.sp,
                         style = tnumStyle
                     )
-                    Spacer(modifier = Modifier.height(28.dp))
                     Text(
-                        text = "TAP ANYWHERE TO RETRY",
-                        color = ProceduralRenderer.COLOR_AMBER,
+                        text = "PRISMS COLLECTED: ${world.prismsCollected}",
+                        color = ProceduralRenderer.COLOR_GREEN,
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
                         style = tnumStyle
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // 1-per-run Clutch Revive / EMP Surge Prompt
+                    if (world.reviveEligible && world.clutchReviveFuseTimer > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.25f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    economyGateway.showRewardedAd(RewardPlacement.ClutchRevive) { result ->
+                                        if (result is RewardResult.Granted) {
+                                            world.triggerClutchRevive()
+                                            deathProcessed = false
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 20.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = "⚡ CLUTCH REVIVE (EMP SURGE) [${String.format("%.1f", world.clutchReviveFuseTimer)}s]",
+                                color = ProceduralRenderer.COLOR_CYAN,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                style = tnumStyle
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    // 2x Prism Doubler (when prisms collected >= 10)
+                    if (world.prismsCollected >= 10) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = ProceduralRenderer.COLOR_GREEN.copy(alpha = 0.20f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    economyGateway.showRewardedAd(RewardPlacement.DoublePrismHarvest) { result ->
+                                        if (result is RewardResult.Granted) {
+                                            economyGateway.addPrisms(world.prismsCollected)
+                                            world.prismsCollected *= 2
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "💎 2x PRISM BOUNTY (+${world.prismsCollected}) [AD]",
+                                color = ProceduralRenderer.COLOR_GREEN,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                style = tnumStyle
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    // Sub-300ms Instant Retry Button
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = ProceduralRenderer.COLOR_AMBER.copy(alpha = 0.20f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .clickable {
+                                economyGateway.showInterstitialIfAllowed {
+                                    world.reset()
+                                    inputSystem.reset()
+                                    directorSystem.reset()
+                                    deathProcessed = false
+                                    world.state = GameState.PLAYING
+                                }
+                            }
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "TAP TO RETRY",
+                            color = ProceduralRenderer.COLOR_AMBER,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            style = tnumStyle
+                        )
+                    }
                 }
             }
         }

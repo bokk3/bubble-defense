@@ -108,10 +108,19 @@ class GameWorld(initialSeed: Int = 1337) {
     // Wave Director & Sawtooth Pacing
     // ---------------------------------------------------------------------------------------------
 
+    companion object {
+        const val MAX_TELEGRAPHS: Int = 8
+    }
+
     var directorThreatBudget: Float = 0f
     var directorWaveTimer: Float = 0f
     var directorSpawnCooldown: Float = 0f
     var rngSeed: Int = initialSeed
+
+    val telegraphX = FloatArray(MAX_TELEGRAPHS)
+    val telegraphTimer = FloatArray(MAX_TELEGRAPHS)
+    val telegraphType = ByteArray(MAX_TELEGRAPHS)
+    var telegraphCount: Int = 0
 
     // ---------------------------------------------------------------------------------------------
     // Flow Economy & Relief Valves (`arcade-economy-architect`)
@@ -179,6 +188,7 @@ class GameWorld(initialSeed: Int = 1337) {
         directorWaveTimer = 0f
         directorSpawnCooldown = 0.5f // brief initial breather before first threat
         rngSeed = if (seed != 0) seed else 1337
+        telegraphCount = 0
 
         // Reset Economy
         reviveUsedThisRun = false
