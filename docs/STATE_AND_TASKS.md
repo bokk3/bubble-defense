@@ -21,6 +21,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v0.4.0`** | **Phase 4** | Wave Director, Juice System, Flow Economy, Game Over & Sub-300ms Instant Retry | **RELEASED** | 2026-11-10 |
 | **`v1.0.0`** | **Phase 5** | Production Release Candidate, 120Hz SysTrace Profiling, APK Assembly | **RELEASED** | 2026-11-10 |
 | **`v1.1.0`** | **Phase 6** | 2.5D Perspective Engine Overhaul (Highway Lane, 3rd Person Camera, Extruded Shields) | **RELEASED** | 2026-11-10 |
+| **`v1.2.0`** | **Phase 7** | Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets, Horizon Despawn & Sensory VFX | **RELEASED** | 2026-11-10 |
 
 ---
 
@@ -211,6 +212,43 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
+### Phase 7: Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets & Sensory VFX (`v1.2.0`) — [COMPLETED]
+- [x] **T7.1 Infinite Wave Director & Dynamic Threat Scaling** `[JUICE-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement continuous wave tracking: `waveNumber = 1 + (directorWaveTimer / WAVE_PERIOD).toInt()`.
+  - [x] Dynamic threat budget scaling: $\dot{B}(t) = (\lambda(t) \cdot \phi(t)) \cdot (1.0 + 0.1 \cdot \text{waveNumber})$.
+  - [x] Guaranteed Drifter fallback spawning when high-tier archetypes cannot be afforded.
+  - [x] Wave announcement trigger and state properties in `GameWorld.kt`.
+- [x] **T7.2 Parried Obstacle Horizon Escape Physics & Score Mechanics** `[PHYS-AGENT]`
+  - [x] Invert gravity for `FLAG_PARRIED` obstacles: apply upward escape thrust ($-\Delta V_y$, $-800\text{ wu/s}^2$).
+  - [x] Despawn obstacles at horizon ($Y \le 50\text{ wu}$) and award `SCORE_CLEARED_BONUS` (+10) with floating score popup.
+  - [x] Despawn dodged obstacles behind bubble ($Y \ge 1600\text{ wu}$) and award `SCORE_CLEARED_BONUS`.
+  - [x] Ensure bubble collision decrements `bubbleHp`, triggers $1.0\text{s}$ invulnerability, and only sets `GAME_OVER` when `bubbleHp <= 0`.
+- [x] **T7.3 120Hz Hardware-Accelerated Canvas HUD** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Move Altitude, Speed, Score, Combo multiplier, 3 Neon Health Shield Cores, Prisms, and Wave banners directly into `ProceduralRenderer.kt` on the Canvas via `nativeCanvas` and cached `AndroidPaint`.
+  - [x] Defer Game Over modal display to reactive Compose state `currentGameState` updated in `withFrameNanos`.
+  - [x] Remove desynced Compose `Text` HUD composables from `GameScreen.kt`.
+- [x] **T7.4 2.5D Roadside Map Assets & Horizon Scenery** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Procedural Neon Light Pylons on highway shoulders ($X = 60, 940\text{ wu}$) every $\Delta Y = 160\text{ wu}$, extruded $100\text{ wu}$ with glowing cyan lanterns.
+  - [x] Overhead Milestone Gantries spanning the road every $250\text{m}$ with illuminated altitude distance signs.
+  - [x] Synthwave retro sun on the horizon with horizontal scanlines and sunset gradient.
+  - [x] Distant mountain silhouettes along the horizon.
+  - [x] Animated curb LED lighting dashes moving with altitude speed.
+- [x] **T7.5 Enhanced Sensory Juice & Combat VFX** `[JUICE-AGENT]`, `[kinetic-flow-architect]`
+  - [x] Radial parry shockwave rings expanding across the ground plane upon successful shield deflection.
+  - [x] High-speed warp streaks radiating outward from vanishing point during high combo / velocity.
+  - [x] Shield break glass shatter shards with outward rotational impulses.
+  - [x] Near-miss cyan border vignette pulse.
+- [x] **T7.6 Unit Test Suite Expansion & Zero-Allocation Verification** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Expand `DirectorSystemTest.kt` for continuous wave scaling beyond Wave 1.
+  - [x] Expand `PhysicsSystemTest.kt` for parried obstacle horizon despawn and score bonuses.
+  - [x] Verify test suite passes with 0 failures and 0 heap allocations in hot paths (135/135 tests passing).
+- [x] **T7.7 Production Signed Release APK Assembly (v1.2.0) & GitHub Release** `[ARCH-AGENT]`
+  - [x] Verify signed `app-release.apk` with `apksigner.bat` (Scheme v2 verified).
+  - [x] Create GitHub release `v1.2.0` and upload APK.
+  - [x] Git commit and tag `v1.2.0`.
+
+---
+
 ## 3. Known Edge Cases & Handling
 
 1. **Degenerate Segments (`lenSq <= 1e-8 wu²`):**
@@ -237,10 +275,34 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
    - Sorting obstacles from far to near ($Y$ ascending) must avoid object allocations (no `List<T>`, no `Comparator`, no boxing). We use an in-place insertion/comb sort on a pre-allocated primitive array `IntArray(128)` indexing active obstacles.
 11. **Sub-Horizon Segment Clipping:**
    - Any shield or obstacle line segment with an endpoint behind the camera ($Y > Y_{\text{cam}}$) or past the horizon ($Y < 0$) is geometrically clipped to prevent projection wrap-around.
+12. **Compose Live HUD Decoupling & Reactive Modal Bridging:**
+    - Fast-changing live gameplay telemetry (Altitude, Speed, Score, Combo multiplier, 3 Neon Health Shield Cores, Prisms, and Wave banners) MUST be rendered directly in `ProceduralRenderer.kt` on the Canvas via `nativeCanvas` and cached `AndroidPaint` to guarantee locked 120Hz updates with 0ms latency and 0 Compose recomposition overhead. Interactive dialogs (Game Over, Clutch Revive, Retry, 2x Prisms ad button) are bridged via reactive Compose state `currentGameState` updated in `withFrameNanos`.
 
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.2.0` (2026-11-10) — Phase 7: Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets & Sensory VFX
+- **feat(director):** Infinite Wave Director progression supporting seamless multi-wave scaling (`waveNumber = 1 + (directorWaveTimer / WAVE_PERIOD)`), dynamic threat budget scaling ($(1.0 + 0.1 \cdot \text{waveNumber})$), and guaranteed Drifter fallback spawning.
+- **feat(physics):** Parried obstacle horizon escape physics applying upward thrust ($-\Delta V_y$, $-700\text{ wu/s}^2$) towards vanishing point ($Y \le 60\text{ wu}$), despawning cleanly and awarding `SCORE_CLEARED_BONUS` (+10) without falling back down onto the bubble. Awarded cleared bonus on dodged obstacles past $Y \ge 1600\text{ wu}$.
+- **feat(render):** 120Hz Hardware-Accelerated Procedural Canvas HUD rendered directly via `nativeCanvas` and cached `AndroidPaint`:
+  - Top-Left: Altitude (`00142m`) + speed readout (`32 km/h`).
+  - Top-Center: 3 Neon Shield Health Cores (Cyan/Green 3/3, Amber 2/3, Flashing Red 1/3) + wave status readout.
+  - Top-Right: Score (`004,520`) with dynamic combo multiplier badge (`x2.5`) + Prisms (`💎 14`).
+  - Center Banner: Dynamic wave announcement banner (`"WAVE 1 • CRUNCH"`, `"WAVE 2 • HARVEST"`).
+  - Top Bar: Diegetic ink energy gauge.
+- **feat(map):** 2.5D Roadside Map Assets:
+  - Procedural Neon Light Pylons on highway shoulders ($X = 60, 940\text{ wu}$) every $\Delta Y = 160\text{ wu}$, extruded $100\text{ wu}$ with glowing cyan lanterns and foundation pads.
+  - Overhead Milestone Gantries spanning highway curbs every $250\text{m}$ of altitude with illuminated neon distance signs (`"250m"`, `"500m"`, `"1000m"`).
+  - Synthwave retro sun centered at horizon vanishing point with horizontal scanlines and sunset gradient.
+  - Jagged low-poly distant mountain silhouettes flanking the horizon.
+- **feat(vfx):** Enhanced sensory juice VFX:
+  - Radial parry shockwave rings expanding across the ground plane upon successful shield deflection.
+  - High-speed warp streaks radiating from vanishing point during combo streaks.
+  - Near-miss cyan border vignette pulse during close obstacle proximity.
+- **feat(ui):** Reactive Compose game state bridge `currentGameState` updated inside `withFrameNanos`, ensuring instant Game Over modal presentation, Clutch Revive EMP surge prompt, and sub-300ms instant retry.
+- **test(suite):** Expand test suite to **135/135 passing unit tests** (0 failures, 0 skipped, 0ms GC allocations in hot paths).
+- **build(release):** Assemble signed production release APK (`app-release.apk`: 824 KB) verified with APK Signature Scheme v2.
 
 ### `v1.1.0` (2026-11-10) — Phase 6: 2.5D Perspective Engine Overhaul
 - **feat(camera):** Implement `PerspectiveCamera.kt` providing closed-form zero-allocation perspective projection and ground-plane touch raycasting unprojection. Calibrated with vanishing point at 28% screen height, focal reference depth $D = 374\text{ wu}$, and lane width $86\%$ screen width.
@@ -311,16 +373,15 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-10
-- **Current Version:** `v1.1.0`
+- **Current Version:** `v1.2.0`
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 6 COMPLETE (v1.1.0 2.5D Perspective Engine Overhaul)**. The entire 2D canvas has been transformed into a 2.5D third-person forward-looking highway lane arcade runner:
-  - 100% deterministic 480Hz narrowphase physics engine completely preserved in Virtual World Space.
-  - Closed-form zero-allocation perspective projection and ground-plane touch unprojection.
-  - 2.5D synthwave highway with converging neon curbs and forward-scrolling velocity crosslines with $1/Z$ perspective compression.
-  - Extruded 3D neon energy shield barricades with translucent barrier quads and hot-core laser crests.
-  - 3D spherical bubble orb with ground drop-shadow, soft-body wobble, and inclined diegetic ink ring.
-  - Depth-sorted 3D procedural obstacles (Drifter spheres, supersonic Needle cones, Crusher hexagonal monoliths, Splitter octahedrons).
-  - 3D camera trauma (pitch, lateral sway, roll banking, FOV punch-in centered on horizon).
-  - Full test suite: **130/130 unit tests passing** (0 failures, 0 skipped, 0 heap allocations).
-  - Production release candidate APK assembled (`app-release-unsigned.apk`: 832 KB).
-- **Next Task:** Live device validation, playtesting, and app store deployment.
+- **Status:** **PHASE 7 COMPLETE (v1.2.0 Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets & Sensory VFX)**:
+  - Infinite Wave Director progression supporting seamless multi-wave scaling and guaranteed fallback spawning.
+  - Parried obstacles now accelerate into the horizon vanishing point, despawning cleanly at $Y \le 60\text{ wu}$ and awarding bonus score without falling back onto the bubble.
+  - 120Hz Hardware-Accelerated Procedural Canvas HUD rendering Altitude, Speed, 3 Neon Health Shield Cores, Score with combo multiplier badge, Prisms, Diegetic Ink Bar, and Wave Announcement Banners.
+  - Reactive Compose game state bridge `currentGameState` ensuring immediate Game Over modal presentation, Clutch Revive fuse countdown, and sub-300ms instant retry.
+  - 2.5D Roadside Map Assets: Neon Light Pylons on highway shoulders, Overhead 250m Milestone Gantries, Synthwave retro sun with scanlines, and mountain silhouettes.
+  - Sensory VFX: Radial parry shockwave rings, warp speed streaks, and near-miss warning vignette.
+  - Full test suite: **135/135 unit tests passing** (0 failures, 0 skipped, 0 heap allocations).
+  - Production release APK assembled and signed (`app-release.apk`: 824 KB, APK Signature Scheme v2 verified).
+- **Next Task:** Live test device validation on physical hardware with user.

@@ -115,6 +115,9 @@ class GameWorld(initialSeed: Int = 1337) {
     var directorThreatBudget: Float = 0f
     var directorWaveTimer: Float = 0f
     var directorSpawnCooldown: Float = 0f
+    var currentWave: Int = 1
+    var wavePhaseName: String = "CRUNCH"
+    var waveAnnouncementTimer: Float = 2.0f
     var rngSeed: Int = initialSeed
 
     val telegraphX = FloatArray(MAX_TELEGRAPHS)
@@ -187,6 +190,9 @@ class GameWorld(initialSeed: Int = 1337) {
         directorThreatBudget = 0f
         directorWaveTimer = 0f
         directorSpawnCooldown = 0.5f // brief initial breather before first threat
+        currentWave = 1
+        wavePhaseName = "CRUNCH"
+        waveAnnouncementTimer = 2.0f
         rngSeed = if (seed != 0) seed else 1337
         telegraphCount = 0
 

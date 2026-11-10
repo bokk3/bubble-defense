@@ -114,6 +114,27 @@ class ProceduralRenderer {
         textAlign = AndroidPaint.Align.CENTER
     }
 
+    // Reusable Native Paints for 120Hz Hardware HUD
+    private val hudPaintLeft = AndroidPaint().apply {
+        isAntiAlias = true
+        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        textAlign = AndroidPaint.Align.LEFT
+    }
+
+    private val hudPaintRight = AndroidPaint().apply {
+        isAntiAlias = true
+        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        textAlign = AndroidPaint.Align.RIGHT
+    }
+
+    private val hudPaintCenter = AndroidPaint().apply {
+        isAntiAlias = true
+        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        textAlign = AndroidPaint.Align.CENTER
+    }
+
+    private val mountainPath = Path()
+
     /** Active equipped procedural shield cosmetic skin. */
     var activeShieldSkin: ShieldSkin = ShieldSkin.CYBER_CYAN
 
@@ -132,33 +153,40 @@ class ProceduralRenderer {
         // 1. Draw Deep Cyberpunk Void Background
         drawScope.drawRect(COLOR_BG)
 
-        // 2. Draw 2.5D Synthwave Sky & Horizon
+        // 2. Draw 2.5D Synthwave Sky, Mountains & Retro Sun
         drawSkyAndHorizon(drawScope, world, scaler)
 
         // 3. Draw 2.5D Highway Lane (Road surface, curbs, scrolling velocity crosslines)
         drawHighwayLane(drawScope, world, scaler)
 
-        // 4. Draw Active Particles (Depth-projected)
+        // 4. Draw Roadside Assets (Neon Light Pylons & Overhead Milestone Gantries)
+        drawRoadsideAssets(drawScope, world, scaler)
+
+        // 5. Draw Active Particles & Sensory Juice VFX (Shockwaves, Warp Streaks)
+        drawSensoryJuiceVFX(drawScope, world, scaler)
         drawParticles(drawScope, world, scaler)
 
-        // 5. Draw Extruded 3D Neon Energy Walls
+        // 6. Draw Extruded 3D Neon Energy Walls
         drawShieldSegments(drawScope, world, scaler)
 
-        // 6. Draw 3D Defense Bubble with Soft-Body Harmonic Wobble & Inclined Ink Ring
+        // 7. Draw 3D Defense Bubble with Soft-Body Harmonic Wobble & Inclined Ink Ring
         drawBubble(drawScope, world, scaler)
 
-        // 7. Draw Depth-Sorted Incoming Obstacles (3D Geometry & Shadows)
+        // 8. Draw Depth-Sorted Incoming Obstacles (3D Geometry & Shadows)
         drawObstacles(drawScope, world, scaler)
 
-        // 8. Draw 3D Threat Telegraph Warning Lasers & Chevrons
+        // 9. Draw 3D Threat Telegraph Warning Lasers & Chevrons
         drawTelegraphs(drawScope, world, scaler)
 
-        // 9. Draw 3D Floating Combat Text
+        // 10. Draw 3D Floating Combat Text
         drawFloatingTexts(drawScope, world, scaler)
+
+        // 11. Draw 120Hz Hardware-Accelerated Live HUD (Altitude, Score, Health Cores, Wave Banner)
+        drawLiveHUD(drawScope, world, scaler)
     }
 
     // ---------------------------------------------------------------------------------------------
-    // 2.5D Synthwave Sky & Horizon
+    // 2.5D Synthwave Sky, Mountains & Retro Sun
     // ---------------------------------------------------------------------------------------------
 
     private fun drawSkyAndHorizon(
@@ -187,19 +215,93 @@ class ProceduralRenderer {
             )
         }
 
+        // Synthwave Retro Sun centered at horizon
+        val sunRadius = min(screenW * 0.15f, 70f)
+        val sunCx = screenW * 0.5f
+        val sunCy = horizonY - 8f
+
+        // Outer glow
+        drawScope.drawCircle(
+            color = COLOR_MAGENTA.copy(alpha = 0.22f),
+            radius = sunRadius * 1.35f,
+            center = Offset(sunCx, sunCy)
+        )
+        // Mid aura
+        drawScope.drawCircle(
+            color = COLOR_AMBER.copy(alpha = 0.45f),
+            radius = sunRadius,
+            center = Offset(sunCx, sunCy)
+        )
+        // Sun core
+        drawScope.drawCircle(
+            color = COLOR_AMBER,
+            radius = sunRadius * 0.85f,
+            center = Offset(sunCx, sunCy)
+        )
+
+        // Horizontal dark scanlines cutting through the retro sun
+        var scanlineY = sunCy - sunRadius * 0.25f
+        var scanlineH = 1.5f
+        while (scanlineY <= horizonY) {
+            val dy = scanlineY - sunCy
+            val halfWSq = sunRadius * sunRadius - dy * dy
+            if (halfWSq > 4f) {
+                val halfW = kotlin.math.sqrt(halfWSq)
+                drawScope.drawLine(
+                    color = COLOR_BG,
+                    start = Offset(sunCx - halfW - 2f, scanlineY),
+                    end = Offset(sunCx + halfW + 2f, scanlineY),
+                    strokeWidth = scanlineH
+                )
+            }
+            scanlineH += 0.7f
+            scanlineY += scanlineH + 3.2f
+        }
+
+        // Distant Jagged Mountains flanking the horizon
+        drawMountains(drawScope, horizonY, screenW)
+
         // Horizon Laser Glow Line
         drawScope.drawLine(
-            color = COLOR_MAGENTA.copy(alpha = 0.18f),
+            color = COLOR_MAGENTA.copy(alpha = 0.25f),
             start = Offset(0f, horizonY - 1f),
             end = Offset(screenW, horizonY - 1f),
             strokeWidth = 6f
         )
         drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = 0.40f),
+            color = COLOR_CYAN.copy(alpha = 0.55f),
             start = Offset(0f, horizonY),
             end = Offset(screenW, horizonY),
             strokeWidth = 2f
         )
+    }
+
+    private fun drawMountains(drawScope: DrawScope, horizonY: Float, screenW: Float) {
+        // Left Ridge
+        mountainPath.rewind()
+        mountainPath.moveTo(0f, horizonY)
+        mountainPath.lineTo(0f, horizonY - 35f)
+        mountainPath.lineTo(screenW * 0.08f, horizonY - 20f)
+        mountainPath.lineTo(screenW * 0.16f, horizonY - 50f)
+        mountainPath.lineTo(screenW * 0.24f, horizonY - 25f)
+        mountainPath.lineTo(screenW * 0.32f, horizonY - 12f)
+        mountainPath.lineTo(screenW * 0.38f, horizonY)
+        mountainPath.close()
+        drawScope.drawPath(mountainPath, color = Color(0xFF0A0F20), style = Fill)
+        drawScope.drawPath(mountainPath, color = COLOR_MAGENTA.copy(alpha = 0.40f), style = strokeWhiteCore)
+
+        // Right Ridge
+        mountainPath.rewind()
+        mountainPath.moveTo(screenW * 0.62f, horizonY)
+        mountainPath.lineTo(screenW * 0.68f, horizonY - 16f)
+        mountainPath.lineTo(screenW * 0.76f, horizonY - 45f)
+        mountainPath.lineTo(screenW * 0.84f, horizonY - 22f)
+        mountainPath.lineTo(screenW * 0.92f, horizonY - 38f)
+        mountainPath.lineTo(screenW, horizonY - 25f)
+        mountainPath.lineTo(screenW, horizonY)
+        mountainPath.close()
+        drawScope.drawPath(mountainPath, color = Color(0xFF0A0F20), style = Fill)
+        drawScope.drawPath(mountainPath, color = COLOR_CYAN.copy(alpha = 0.40f), style = strokeWhiteCore)
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1001,6 +1103,389 @@ class ProceduralRenderer {
             textPaint.alpha = (lifeRatio * 255).toInt().coerceIn(0, 255)
 
             canvas.drawText(label, sx, sy, textPaint)
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Roadside Map Assets: Neon Light Pylons & Overhead Milestone Gantries
+    // ---------------------------------------------------------------------------------------------
+
+    private fun drawRoadsideAssets(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler
+    ) {
+        val cameraY = scaler.camera.cameraY
+        val pylonSpacing = 160f
+        val pylonScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % pylonSpacing
+        val shoulderLeft = 60f
+        val shoulderRight = 940f
+
+        var py = pylonScroll
+        while (py <= cameraY) {
+            val depthScale = scaler.scaleLaneDepth(py)
+            val pylonH = 100f
+
+            // Left Shoulder Pylon
+            drawSinglePylon(drawScope, scaler, shoulderLeft, py, pylonH, depthScale, isLeft = true)
+
+            // Right Shoulder Pylon
+            drawSinglePylon(drawScope, scaler, shoulderRight, py, pylonH, depthScale, isLeft = false)
+
+            py += pylonSpacing
+        }
+
+        // Overhead Milestone Gantries spanning highway every 250m
+        drawMilestoneGantries(drawScope, world, scaler)
+    }
+
+    private fun drawSinglePylon(
+        drawScope: DrawScope,
+        scaler: ViewportScaler,
+        wx: Float,
+        wy: Float,
+        hWu: Float,
+        depthScale: Float,
+        isLeft: Boolean
+    ) {
+        val gx = scaler.worldLaneToScreenX(wx, wy)
+        val gy = scaler.worldLaneToScreenY(wy)
+        val ty = scaler.worldLaneToScreenY(wy, heightWu = hWu)
+
+        val alpha = (depthScale * 0.85f).coerceIn(0.12f, 0.90f)
+        val shaftW = (3f * depthScale).coerceAtLeast(1.5f)
+        val color = if (isLeft) COLOR_CYAN else COLOR_AMBER
+
+        // Vertical Pylon Column
+        drawScope.drawLine(
+            color = color.copy(alpha = alpha),
+            start = Offset(gx, gy),
+            end = Offset(gx, ty),
+            strokeWidth = shaftW
+        )
+
+        // Glowing Lantern at Top
+        val lanternRadius = (6f * depthScale).coerceAtLeast(2f)
+        drawScope.drawCircle(
+            color = color.copy(alpha = alpha * 0.40f),
+            radius = lanternRadius * 1.8f,
+            center = Offset(gx, ty)
+        )
+        drawScope.drawCircle(
+            color = color.copy(alpha = alpha),
+            radius = lanternRadius,
+            center = Offset(gx, ty)
+        )
+        drawScope.drawCircle(
+            color = COLOR_WHITE.copy(alpha = alpha),
+            radius = lanternRadius * 0.45f,
+            center = Offset(gx, ty)
+        )
+
+        // Ground Foundation Pad
+        val padW = (10f * depthScale).coerceAtLeast(3f)
+        drawScope.drawLine(
+            color = COLOR_WHITE.copy(alpha = alpha * 0.6f),
+            start = Offset(gx - padW, gy),
+            end = Offset(gx + padW, gy),
+            strokeWidth = shaftW
+        )
+    }
+
+    private fun drawMilestoneGantries(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler
+    ) {
+        val cameraY = scaler.camera.cameraY
+        val currentAlt = world.altitudeMeters
+        val currentIdx = (currentAlt / 250f).toInt()
+
+        // Check milestones ahead
+        for (idx in currentIdx..(currentIdx + 2)) {
+            val milestoneM = idx * 250
+            if (milestoneM <= 0) continue
+
+            // Distance in meters ahead of bubble:
+            val dMeters = milestoneM - currentAlt
+            val distWu = dMeters * GameConfig.WU_PER_METER * 1.5f
+            val gantryY = GameConfig.BUBBLE_CENTER_Y - distWu
+
+            if (gantryY in 10f..cameraY) {
+                val depthScale = scaler.scaleLaneDepth(gantryY)
+                val alpha = (depthScale * 0.95f).coerceIn(0.15f, 1f)
+                val leftX = scaler.worldLaneToScreenX(GameConfig.LANE_LEFT_CURB_X, gantryY)
+                val rightX = scaler.worldLaneToScreenX(GameConfig.LANE_RIGHT_CURB_X, gantryY)
+                val groundY = scaler.worldLaneToScreenY(gantryY)
+                val topY = scaler.worldLaneToScreenY(gantryY, heightWu = 140f)
+
+                val postW = (4f * depthScale).coerceAtLeast(1.5f)
+                val beamW = (5f * depthScale).coerceAtLeast(2f)
+
+                // Left & Right Vertical Posts
+                drawScope.drawLine(COLOR_CYAN.copy(alpha = alpha), Offset(leftX, groundY), Offset(leftX, topY), strokeWidth = postW)
+                drawScope.drawLine(COLOR_CYAN.copy(alpha = alpha), Offset(rightX, groundY), Offset(rightX, topY), strokeWidth = postW)
+
+                // Overhead Cross-Beam
+                drawScope.drawLine(COLOR_CYAN.copy(alpha = alpha), Offset(leftX, topY), Offset(rightX, topY), strokeWidth = beamW)
+                drawScope.drawLine(COLOR_WHITE.copy(alpha = alpha * 0.7f), Offset(leftX, topY), Offset(rightX, topY), strokeWidth = postW * 0.5f)
+
+                // Center Illuminated Signboard
+                val centerX = (leftX + rightX) * 0.5f
+                val signW = (80f * depthScale).coerceAtLeast(30f)
+                val signH = (26f * depthScale).coerceAtLeast(12f)
+                val signTop = topY - signH * 0.5f
+
+                drawScope.drawRect(
+                    color = Color(0xCC050814),
+                    topLeft = Offset(centerX - signW * 0.5f, signTop),
+                    size = Size(signW, signH)
+                )
+                drawScope.drawRect(
+                    color = COLOR_AMBER.copy(alpha = alpha),
+                    topLeft = Offset(centerX - signW * 0.5f, signTop),
+                    size = Size(signW, signH),
+                    style = strokeRing
+                )
+
+                // Signboard text
+                val canvas = drawScope.drawContext.canvas.nativeCanvas
+                hudPaintCenter.textSize = (14f * depthScale).coerceAtLeast(8f)
+                hudPaintCenter.color = 0xFFFFB800.toInt() // Amber
+                hudPaintCenter.alpha = (alpha * 255).toInt().coerceIn(0, 255)
+                canvas.drawText("${milestoneM}m", centerX, signTop + signH * 0.75f, hudPaintCenter)
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Sensory Juice & VFX
+    // ---------------------------------------------------------------------------------------------
+
+    private fun drawSensoryJuiceVFX(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler
+    ) {
+        val sw = scaler.screenWidthPx
+        val sh = scaler.screenHeightPx
+        val horizonY = scaler.camera.vanishingPointY
+        val sunCx = sw * 0.5f
+
+        // 1. Warp Speed Streaks during high velocity / combo
+        if (world.comboCount >= 2 || world.ascentSpeed > GameConfig.ASCENT_SPEED_BASE * 1.2f) {
+            val streakCount = 14
+            val streakAlpha = (world.comboCount * 0.08f).coerceIn(0.12f, 0.45f)
+            val time = world.gameTime * 8f
+
+            for (s in 0 until streakCount) {
+                val angle = (s * (2f * PI.toFloat() / streakCount)) + sin(time + s) * 0.1f
+                val length = (100f + sin(time * 2f + s) * 60f).coerceAtLeast(40f)
+                val startR = 40f + (s * 17) % 60
+                val endR = startR + length
+
+                val sx = sunCx + cos(angle) * startR
+                val sy = horizonY + sin(angle) * startR * 0.6f
+                val ex = sunCx + cos(angle) * endR
+                val ey = horizonY + sin(angle) * endR * 0.6f
+
+                drawScope.drawLine(
+                    color = COLOR_CYAN.copy(alpha = streakAlpha),
+                    start = Offset(sx, sy),
+                    end = Offset(ex, ey),
+                    strokeWidth = 2f
+                )
+            }
+        }
+
+        // 2. Radial Parry Shockwave Rings
+        if (world.trauma > 0.08f) {
+            val shockwaveR = (1f - world.trauma) * 320f + 60f
+            val shockAlpha = (world.trauma * 0.8f).coerceIn(0.1f, 0.7f)
+            val bx = scaler.worldLaneToScreenX(world.bubbleX, world.bubbleY)
+            val by = scaler.worldLaneToScreenY(world.bubbleY)
+
+            // Ground-projected oval shockwave
+            drawScope.drawOval(
+                color = COLOR_CYAN.copy(alpha = shockAlpha),
+                topLeft = Offset(bx - shockwaveR, by - shockwaveR * 0.35f),
+                size = Size(shockwaveR * 2f, shockwaveR * 0.70f),
+                style = strokeRing
+            )
+            drawScope.drawOval(
+                color = COLOR_WHITE.copy(alpha = shockAlpha * 0.6f),
+                topLeft = Offset(bx - shockwaveR * 0.85f, by - shockwaveR * 0.85f * 0.35f),
+                size = Size(shockwaveR * 1.70f, shockwaveR * 1.70f * 0.35f),
+                style = strokeWhiteCore
+            )
+        }
+
+        // 3. Near-Miss Proximity Warning Vignette
+        if (world.closestObstacleDistance < 100f) {
+            val proxRatio = (1f - world.closestObstacleDistance / 100f).coerceIn(0f, 1f)
+            val vigColor = if (world.bubbleHp == 1) COLOR_RED else COLOR_CYAN
+            val vigAlpha = (proxRatio * 0.30f).coerceIn(0f, 0.35f)
+
+            // Vignette lines at left, right, bottom edges
+            drawScope.drawLine(vigColor.copy(alpha = vigAlpha), Offset(0f, 0f), Offset(0f, sh), strokeWidth = 14f)
+            drawScope.drawLine(vigColor.copy(alpha = vigAlpha), Offset(sw, 0f), Offset(sw, sh), strokeWidth = 14f)
+            drawScope.drawLine(vigColor.copy(alpha = vigAlpha), Offset(0f, sh), Offset(sw, sh), strokeWidth = 14f)
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // 120Hz Hardware-Accelerated Live HUD
+    // ---------------------------------------------------------------------------------------------
+
+    private fun drawLiveHUD(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler
+    ) {
+        val sw = scaler.screenWidthPx
+        val canvas = drawScope.drawContext.canvas.nativeCanvas
+
+        val scale = (sw / 1000f).coerceIn(0.75f, 1.35f)
+        val padX = 24f * scale
+        val topY = 48f * scale
+
+        // 1. Top-Left: Altitude & Velocity Readouts
+        hudPaintLeft.textSize = 12f * scale
+        hudPaintLeft.color = 0xFF00F0FF.toInt()
+        hudPaintLeft.alpha = 180
+        canvas.drawText("ALTITUDE", padX, topY + 14f * scale, hudPaintLeft)
+
+        hudPaintLeft.textSize = 28f * scale
+        hudPaintLeft.color = 0xFFFFFFFF.toInt()
+        hudPaintLeft.alpha = 255
+        canvas.drawText("${world.altitudeMeters.toInt()}m", padX, topY + 46f * scale, hudPaintLeft)
+
+        hudPaintLeft.textSize = 12f * scale
+        hudPaintLeft.color = 0xFF00F0FF.toInt()
+        hudPaintLeft.alpha = 210
+        val kmh = (world.ascentSpeed * 0.15f).toInt()
+        canvas.drawText("$kmh km/h", padX, topY + 68f * scale, hudPaintLeft)
+
+        // 2. Top-Center: Neon Shield Health Cores & Wave Status
+        val cx = sw * 0.5f
+
+        hudPaintCenter.textSize = 12f * scale
+        hudPaintCenter.color = if (world.wavePhaseName == "CRUNCH") 0xFFFFB800.toInt() else 0xFF00FF99.toInt()
+        hudPaintCenter.alpha = 240
+        canvas.drawText("WAVE ${world.currentWave} • ${world.wavePhaseName}", cx, topY + 14f * scale, hudPaintCenter)
+
+        // 3 Shield Health Diamonds
+        val coreY = topY + 38f * scale
+        val coreSpacing = 34f * scale
+        val coreSize = 12f * scale
+
+        for (c in 1..3) {
+            val coreX = cx + (c - 2) * coreSpacing
+            val isActive = world.bubbleHp >= c
+            val isFlashing = (world.bubbleHp == 1 && c == 1)
+            val flashAlpha = if (isFlashing) (0.5f + 0.5f * sin(world.gameTime * 14f)) else 1f
+
+            scratchPath.rewind()
+            scratchPath.moveTo(coreX, coreY - coreSize)
+            scratchPath.lineTo(coreX + coreSize, coreY)
+            scratchPath.lineTo(coreX, coreY + coreSize)
+            scratchPath.lineTo(coreX - coreSize, coreY)
+            scratchPath.close()
+
+            if (isActive) {
+                // Active Core: Cyan / Amber Warning
+                val coreColor = if (world.bubbleHp == 1) COLOR_AMBER else COLOR_CYAN
+                drawScope.drawPath(scratchPath, color = coreColor.copy(alpha = 0.35f * flashAlpha), style = Fill)
+                drawScope.drawPath(scratchPath, color = coreColor.copy(alpha = 0.90f * flashAlpha), style = strokeCoreThin)
+                drawScope.drawCircle(COLOR_WHITE.copy(alpha = 0.85f * flashAlpha), radius = 3f * scale, center = Offset(coreX, coreY))
+            } else {
+                // Depleted Core: Crimson Outline
+                drawScope.drawPath(scratchPath, color = COLOR_RED.copy(alpha = 0.25f), style = strokeWhiteCore)
+            }
+        }
+
+        // 3. Top-Right: Score, Multiplier & Soft Currency Prisms
+        hudPaintRight.textSize = 12f * scale
+        hudPaintRight.color = 0xFF00F0FF.toInt()
+        hudPaintRight.alpha = 180
+        canvas.drawText("SCORE", sw - padX, topY + 14f * scale, hudPaintRight)
+
+        hudPaintRight.textSize = 28f * scale
+        hudPaintRight.color = 0xFFFFFFFF.toInt()
+        hudPaintRight.alpha = 255
+        canvas.drawText("${world.score}", sw - padX, topY + 46f * scale, hudPaintRight)
+
+        var rightY = topY + 68f * scale
+        if (world.comboCount > 1) {
+            hudPaintRight.textSize = 12f * scale
+            hudPaintRight.color = 0xFFFFB800.toInt() // Amber
+            hudPaintRight.alpha = 255
+            val comboText = "x${String.format("%.1f", world.comboMultiplier)} (${world.comboCount}x)"
+            canvas.drawText(comboText, sw - padX, rightY, hudPaintRight)
+            rightY += 18f * scale
+        }
+
+        hudPaintRight.textSize = 12f * scale
+        hudPaintRight.color = 0xFF00FF99.toInt() // Green
+        hudPaintRight.alpha = 255
+        canvas.drawText("PRISMS: ${world.prismsCollected}", sw - padX, rightY, hudPaintRight)
+
+        // 4. Top Ink Bar
+        val barY = topY + 86f * scale
+        val barW = sw - 2f * padX
+        val barH = 4f * scale
+
+        // Background slot
+        drawScope.drawRect(
+            color = COLOR_CYAN.copy(alpha = 0.15f),
+            topLeft = Offset(padX, barY),
+            size = Size(barW, barH)
+        )
+
+        // Active fill
+        val inkFraction = (world.ink / GameConfig.INK_MAX).coerceIn(0f, 1f)
+        val inkColor = if (inkFraction > 0.25f) COLOR_CYAN else COLOR_AMBER
+        drawScope.drawRect(
+            color = inkColor,
+            topLeft = Offset(padX, barY),
+            size = Size(barW * inkFraction, barH)
+        )
+
+        // 5. Center Wave Announcement Banner
+        if (world.waveAnnouncementTimer > 0f) {
+            val bannerAlpha = (world.waveAnnouncementTimer / 0.5f).coerceIn(0f, 1f)
+            val bannerY = scaler.camera.vanishingPointY + 45f * scale
+            val bannerW = sw * 0.72f
+            val bannerH = 60f * scale
+            val bannerLeft = (sw - bannerW) * 0.5f
+
+            // Translucent glass backdrop
+            drawScope.drawRoundRect(
+                color = Color(0xDD080D1D).copy(alpha = 0.88f * bannerAlpha),
+                topLeft = Offset(bannerLeft, bannerY),
+                size = Size(bannerW, bannerH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f * scale, 12f * scale)
+            )
+            drawScope.drawRoundRect(
+                color = COLOR_CYAN.copy(alpha = 0.65f * bannerAlpha),
+                topLeft = Offset(bannerLeft, bannerY),
+                size = Size(bannerW, bannerH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f * scale, 12f * scale),
+                style = strokeRing
+            )
+
+            // Main Banner Text
+            hudPaintCenter.textSize = 20f * scale
+            hudPaintCenter.color = 0xFFFFFFFF.toInt()
+            hudPaintCenter.alpha = (255 * bannerAlpha).toInt().coerceIn(0, 255)
+            canvas.drawText("WAVE ${world.currentWave} • ${world.wavePhaseName}", cx, bannerY + 28f * scale, hudPaintCenter)
+
+            // Subtitle
+            hudPaintCenter.textSize = 11f * scale
+            hudPaintCenter.color = if (world.wavePhaseName == "CRUNCH") 0xFFFFB800.toInt() else 0xFF00FF99.toInt()
+            hudPaintCenter.alpha = (230 * bannerAlpha).toInt().coerceIn(0, 255)
+            val subMsg = if (world.wavePhaseName == "CRUNCH") "INCOMING THREATS — DEFEND TARGET" else "HARVEST VALLEY — COLLECT PRISMS"
+            canvas.drawText(subMsg, cx, bannerY + 48f * scale, hudPaintCenter)
         }
     }
 }

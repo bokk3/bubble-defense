@@ -98,11 +98,34 @@ class PhysicsSystem(private val world: GameWorld) {
         while (i < world.obstacles.count) {
             val ox = world.obstacles.x[i]
             val oy = world.obstacles.y[i]
+            val flags = world.obstacles.flags[i].toInt()
+            val isParried = (flags and GameConfig.FLAG_PARRIED.toInt()) != 0
+            val isDeflected = (flags and GameConfig.FLAG_DEFLECTED.toInt()) != 0
 
-            // Despawn check
-            if (ox < GameConfig.DESPAWN_MIN_X || ox > GameConfig.DESPAWN_MAX_X ||
-                oy < GameConfig.DESPAWN_MIN_Y || oy > GameConfig.DESPAWN_MAX_Y
-            ) {
+            // Despawn checks
+            // 1. Horizon escape at top (deflected / parried into vanishing point)
+            if (oy <= 60f) {
+                if (isParried || isDeflected) {
+                    val bonus = (GameConfig.SCORE_CLEARED_BONUS * world.comboMultiplier).toInt()
+                    world.addScore(bonus)
+                    world.floatingTexts.spawn(ox, oy, -50f, 0.4f, 1.0f, FloatingTextPool.TEXT_PARRY)
+                    spawnSparkBurst(ox, oy, Vec2.UP, count = 8, isParry = true)
+                }
+                world.obstacles.removeAt(i)
+                continue
+            }
+
+            // 2. Bottom exit (dodged past bubble defense line)
+            if (oy >= GameConfig.DESPAWN_MAX_Y) {
+                if (!isParried && !isDeflected) {
+                    world.addScore(GameConfig.SCORE_CLEARED_BONUS)
+                }
+                world.obstacles.removeAt(i)
+                continue
+            }
+
+            // 3. Side and sub-horizon boundary exit
+            if (ox < GameConfig.DESPAWN_MIN_X || ox > GameConfig.DESPAWN_MAX_X || oy < GameConfig.DESPAWN_MIN_Y) {
                 world.obstacles.removeAt(i)
                 continue
             }
@@ -110,8 +133,16 @@ class PhysicsSystem(private val world: GameWorld) {
             world.obstacles.prevX[i] = ox
             world.obstacles.prevY[i] = oy
 
-            // Apply gravity (+Y is down)
-            var nvy = world.obstacles.vy[i] + GameConfig.GRAVITY_Y * subDt
+            // Apply gravity (+Y down) or parry horizon escape thrust (-Y up)
+            var nvy = if (isParried) {
+                val thrustVy = world.obstacles.vy[i] - 700f * subDt
+                if (thrustVy > -200f) -200f else thrustVy
+            } else if (isDeflected) {
+                val bounceVy = world.obstacles.vy[i] - 300f * subDt
+                if (bounceVy > -100f) -100f else bounceVy
+            } else {
+                world.obstacles.vy[i] + GameConfig.GRAVITY_Y * subDt
+            }
             var nvx = world.obstacles.vx[i]
 
             // Terminal speed clamp

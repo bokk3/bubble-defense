@@ -152,6 +152,62 @@ class DirectorSystemTest {
     }
 
     @Test
+    fun infiniteWaves_progressesBeyondWave1_andTriggersAnnouncements() {
+        world.reset()
+        assertEquals(1, world.currentWave)
+
+        // Step to just before Wave 2 boundary (t = 19.9s)
+        director.step(19.9f)
+        assertEquals(1, world.currentWave)
+
+        // Step across boundary into Wave 2 (dt = 0.2s)
+        director.step(0.2f)
+        assertEquals(2, world.currentWave)
+        assertEquals("CRUNCH", world.wavePhaseName)
+        assertTrue("Expected wave announcement timer to be active", world.waveAnnouncementTimer > 0f)
+
+        // Step into Harvest valley of wave 2 (t = 20s + 15s = 35s)
+        director.step(15f)
+        assertEquals(2, world.currentWave)
+        assertEquals("HARVEST", world.wavePhaseName)
+
+        // Step to just before Wave 3 boundary (t = 39.9s)
+        director.step(4.8f)
+        assertEquals(2, world.currentWave)
+
+        // Step across boundary into Wave 3 (dt = 0.2s)
+        director.step(0.2f)
+        assertEquals(3, world.currentWave)
+        assertTrue("Expected wave announcement timer for Wave 3", world.waveAnnouncementTimer > 0f)
+    }
+
+    @Test
+    fun infiniteWaves_dynamicScaling_scalesThreatRateWithWaveNumber() {
+        world.reset()
+        world.gameTime = 0f
+        world.directorSpawnCooldown = 999f
+
+        // Measure Wave 1 crunch accumulation
+        world.directorThreatBudget = 0f
+        world.directorWaveTimer = 0f
+        director.step(1.0f)
+        val wave1BudgetGain = world.directorThreatBudget
+
+        // Fast-forward to Wave 5 (directorWaveTimer = 80s)
+        world.reset()
+        world.gameTime = 0f
+        world.directorSpawnCooldown = 999f
+        world.directorThreatBudget = 0f
+        world.directorWaveTimer = 80f // Wave 5: 1 + 80/20 = 5
+
+        director.step(1.0f)
+        val wave5BudgetGain = world.directorThreatBudget
+
+        // In wave 5, scale is 1.0 + 0.1 * 4 = 1.4x
+        assertEquals(1.4f, wave5BudgetGain / wave1BudgetGain, 0.05f)
+    }
+
+    @Test
     fun zeroAllocation_hotPathProbe() {
         if (!AllocationProbe.isAvailable) return
         AllocationProbe.warmUp()

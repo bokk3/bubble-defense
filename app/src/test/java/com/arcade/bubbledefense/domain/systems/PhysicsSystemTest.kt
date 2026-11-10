@@ -241,6 +241,102 @@ class PhysicsSystemTest {
     }
 
     @Test
+    fun parriedObstacle_acceleratesUpwardsIntoHorizon_andDespawnsWithBonusScore() {
+        world.reset()
+        val initScore = world.score
+
+        // Spawn obstacle flagged as PARRIED with upward velocity
+        world.obstacles.spawn(
+            posX = 500f, posY = 150f,
+            velX = 0f, velY = -300f,
+            colRadius = GameConfig.DRIFTER_RADIUS,
+            mass = GameConfig.DRIFTER_MASS,
+            colRestitution = GameConfig.DRIFTER_RESTITUTION,
+            obstacleType = GameConfig.TYPE_DRIFTER,
+            obstacleFlags = GameConfig.FLAG_PARRIED
+        )
+
+        // Step sub-step: upward velocity should accelerate more negatively (thrust into horizon)
+        val initialVy = world.obstacles.vy[0]
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+        assertTrue("Parried obstacle should accelerate upward", world.obstacles.vy[0] < initialVy)
+
+        // Move obstacle to horizon escape threshold (Y <= 60f)
+        world.obstacles.y[0] = 50f
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+
+        // Obstacle should be cleared and bonus score awarded
+        assertEquals(0, world.obstacles.count)
+        assertTrue("Bonus score should be awarded on horizon escape", world.score > initScore)
+    }
+
+    @Test
+    fun dodgedObstacle_fallsPastBubble_andDespawnsWithBonusScore() {
+        world.reset()
+        val initScore = world.score
+
+        // Spawn normal obstacle far down past DESPAWN_MAX_Y (1950 wu)
+        world.obstacles.spawn(
+            posX = 500f, posY = GameConfig.DESPAWN_MAX_Y + 10f,
+            velX = 0f, velY = 100f,
+            colRadius = GameConfig.DRIFTER_RADIUS,
+            mass = GameConfig.DRIFTER_MASS,
+            colRestitution = GameConfig.DRIFTER_RESTITUTION,
+            obstacleType = GameConfig.TYPE_DRIFTER
+        )
+
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+        assertEquals(0, world.obstacles.count)
+        assertEquals(initScore + GameConfig.SCORE_CLEARED_BONUS, world.score)
+    }
+
+    @Test
+    fun bubbleCollision_decrementsHp_triggersInvuln_andGameOverOnZeroHp() {
+        world.reset()
+        world.state = GameState.PLAYING
+        assertEquals(3, world.bubbleHp)
+
+        // Hit 1: spawn obstacle right on bubble center
+        world.obstacles.spawn(
+            posX = world.bubbleX, posY = world.bubbleY,
+            velX = 0f, velY = 0f,
+            colRadius = 10f, mass = 1f, colRestitution = 0.5f,
+            obstacleType = GameConfig.TYPE_DRIFTER
+        )
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+
+        assertEquals(2, world.bubbleHp)
+        assertTrue(world.bubbleInvulnTimer > 0f)
+        assertEquals(GameState.PLAYING, world.state)
+
+        // Clear invulnerability timer and hit 2
+        world.bubbleInvulnTimer = 0f
+        world.obstacles.spawn(
+            posX = world.bubbleX, posY = world.bubbleY,
+            velX = 0f, velY = 0f,
+            colRadius = 10f, mass = 1f, colRestitution = 0.5f,
+            obstacleType = GameConfig.TYPE_DRIFTER
+        )
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+
+        assertEquals(1, world.bubbleHp)
+        assertEquals(GameState.PLAYING, world.state)
+
+        // Clear invulnerability timer and hit 3 (lethal)
+        world.bubbleInvulnTimer = 0f
+        world.obstacles.spawn(
+            posX = world.bubbleX, posY = world.bubbleY,
+            velX = 0f, velY = 0f,
+            colRadius = 10f, mass = 1f, colRestitution = 0.5f,
+            obstacleType = GameConfig.TYPE_DRIFTER
+        )
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+
+        assertEquals(0, world.bubbleHp)
+        assertEquals(GameState.GAME_OVER, world.state)
+    }
+
+    @Test
     fun zeroAllocation_probe_physicsSystem() {
         if (!AllocationProbe.isAvailable) return
         AllocationProbe.warmUp()

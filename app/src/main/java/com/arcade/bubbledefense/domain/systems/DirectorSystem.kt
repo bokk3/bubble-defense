@@ -62,13 +62,24 @@ class DirectorSystem(
     fun step(dt: Float) {
         world.directorWaveTimer += dt
 
-        // 1. Sawtooth Pacing Phase calculation
+        // 1. Sawtooth Pacing Phase calculation & Infinite Wave Tracking
         val cycleTime = world.directorWaveTimer % GameConfig.WAVE_PERIOD
         val isCrunch = cycleTime < GameConfig.WAVE_CRUNCH_DURATION
         val phi = if (isCrunch) 1.4f else 0.35f
 
-        // 2. Threat Budget Accumulation: dot{B}(t) = (base + accel * t) * phi
-        val baseRate = GameConfig.BASE_THREAT_RATE + GameConfig.THREAT_RATE_ACCEL * world.gameTime
+        val calculatedWave = 1 + (world.directorWaveTimer / GameConfig.WAVE_PERIOD).toInt()
+        if (calculatedWave != world.currentWave) {
+            world.currentWave = calculatedWave
+            world.waveAnnouncementTimer = 2.5f
+        }
+        world.wavePhaseName = if (isCrunch) "CRUNCH" else "HARVEST"
+        if (world.waveAnnouncementTimer > 0f) {
+            world.waveAnnouncementTimer -= dt
+        }
+
+        // 2. Threat Budget Accumulation: dot{B}(t) = (base + accel * t) * waveScale * phi
+        val waveScale = 1.0f + 0.10f * (world.currentWave - 1)
+        val baseRate = (GameConfig.BASE_THREAT_RATE + GameConfig.THREAT_RATE_ACCEL * world.gameTime) * waveScale
         val threatRate = baseRate * phi
         world.directorThreatBudget = min(
             GameConfig.MAX_THREAT_BUDGET,

@@ -89,6 +89,7 @@ fun GameScreen(
     renderer.activeBubbleSkin = BubbleSkin.findById(economyGateway.equippedBubbleSkinId)
 
     var deathProcessed by remember { mutableStateOf(false) }
+    var currentGameState by remember { mutableStateOf(world.state) }
 
     // Frame interpolation alpha
     var renderAlpha by remember { mutableStateOf(0f) }
@@ -155,10 +156,14 @@ fun GameScreen(
     LaunchedEffect(Unit) {
         gameLoop.start()
         world.state = GameState.PLAYING
+        currentGameState = GameState.PLAYING
         while (isActive) {
             withFrameNanos { frameTimeNanos ->
                 gameLoop.onFrame(frameTimeNanos)
                 drawTrigger = gameLoop.frameTick
+                if (currentGameState != world.state) {
+                    currentGameState = world.state
+                }
             }
         }
     }
@@ -249,102 +254,8 @@ fun GameScreen(
             renderer.draw(this, world, scaler, renderAlpha)
         }
 
-        // 4. Diegetic HUD Overlay (Top Safe Area)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Altitude
-                Column {
-                    Text(
-                        text = "ALTITUDE",
-                        color = ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                        style = tnumStyle
-                    )
-                    Text(
-                        text = "${world.altitudeMeters.toInt()}m",
-                        color = ProceduralRenderer.COLOR_WHITE,
-                        fontSize = 24.sp,
-                        style = tnumStyle
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Score Readout & Soft Currency Prisms
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "SCORE",
-                        color = ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                        style = tnumStyle
-                    )
-                    Text(
-                        text = "${world.score}",
-                        color = ProceduralRenderer.COLOR_WHITE,
-                        fontSize = 24.sp,
-                        style = tnumStyle
-                    )
-                    Text(
-                        text = "PRISMS: ${world.prismsCollected}",
-                        color = ProceduralRenderer.COLOR_GREEN,
-                        fontSize = 12.sp,
-                        style = tnumStyle
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Combo & Multiplier Banner
-            if (world.comboCount > 1) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "COMBO x${world.comboCount}",
-                        color = ProceduralRenderer.COLOR_AMBER,
-                        fontSize = 13.sp,
-                        style = tnumStyle
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "(${String.format("%.2f", world.comboMultiplier)}x)",
-                        color = ProceduralRenderer.COLOR_CYAN,
-                        fontSize = 12.sp,
-                        style = tnumStyle
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Ink Energy Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .background(ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.15f))
-            ) {
-                val inkFraction = (world.ink / GameConfig.INK_MAX).coerceIn(0f, 1f)
-                val inkColor = if (inkFraction > 0.25f) ProceduralRenderer.COLOR_CYAN else ProceduralRenderer.COLOR_AMBER
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(inkFraction)
-                        .height(4.dp)
-                        .background(inkColor)
-                )
-            }
-        }
-
-        // 5. Game Over Overlay with Clutch Revive & Sub-300ms Instant Retry
-        if (world.state == GameState.GAME_OVER) {
+        // 4. Interactive Game Over Modal with Clutch Revive & Sub-300ms Instant Retry
+        if (currentGameState == GameState.GAME_OVER) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -397,6 +308,7 @@ fun GameScreen(
                                         if (result is RewardResult.Granted) {
                                             world.triggerClutchRevive()
                                             deathProcessed = false
+                                            currentGameState = GameState.PLAYING
                                         }
                                     }
                                 }
@@ -456,6 +368,7 @@ fun GameScreen(
                                     directorSystem.reset()
                                     deathProcessed = false
                                     world.state = GameState.PLAYING
+                                    currentGameState = GameState.PLAYING
                                 }
                             }
                             .padding(horizontal = 24.dp, vertical = 12.dp)
