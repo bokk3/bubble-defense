@@ -295,7 +295,7 @@ object GameConfig {
     const val NEEDLE_MIN_SPEED: Float = 900f
     const val NEEDLE_MAX_SPEED: Float = 1400f
     const val NEEDLE_THREAT_COST: Float = 1.5f
-    const val NEEDLE_UNLOCK_TIME: Float = 20f
+    const val NEEDLE_UNLOCK_TIME: Float = 28f
 
     // Crusher
     const val CRUSHER_RADIUS: Float = 46f
@@ -328,10 +328,44 @@ object GameConfig {
     const val WAVE_CRUNCH_DURATION: Float = 14f
     const val WAVE_HARVEST_DURATION: Float = 6f
     const val MAX_THREAT_BUDGET: Float = 10f
-    const val BASE_THREAT_RATE: Float = 2.4f
+    const val BASE_THREAT_RATE: Float = 1.8f
     const val THREAT_RATE_ACCEL: Float = 0.08f
     const val SPAWN_COOLDOWN_TIME: Float = 0.20f
-    const val THREAT_TELEGRAPH_TIME: Float = 0.350f
+    const val THREAT_TELEGRAPH_TIME: Float = 0.50f
+
+    // Dynamic Mercy Flow (1 HP Relief & Pacing Assistance)
+    const val MERCY_THREAT_SPEED_SCALE: Float = 0.75f
+    const val MERCY_EMERGENCY_CRYSTAL_COOLDOWN: Float = 3.0f
+
+    // ---------------------------------------------------------------------------------------------
+    // Roguelike Tactical Protocols & Milestone Warp Chamber
+    // ---------------------------------------------------------------------------------------------
+
+    const val MILESTONE_WARP_INTERVAL_METERS: Float = 250f
+
+    const val PROTOCOL_MAGNETIC_AEGIS: Int = 1 shl 0
+    const val PROTOCOL_BOUNCY_SHIELDS: Int = 1 shl 1
+    const val PROTOCOL_DRONE_OVERCLOCK: Int = 1 shl 2
+    const val PROTOCOL_TEMPORAL_BUFFER: Int = 1 shl 3
+    const val PROTOCOL_DEEP_INK_WELL: Int = 1 shl 4
+    const val PROTOCOL_NOVA_DEFLECTION: Int = 1 shl 5
+    const val PROTOCOL_REPAIR_NANITES: Int = 1 shl 6
+    const val PROTOCOL_PRISM_BATTERY: Int = 1 shl 7
+    const val TOTAL_PROTOCOLS: Int = 8
+
+    // Protocol Balance Values
+    const val PROTOCOL_MAGNETIC_RADIUS: Float = 300f
+    const val PROTOCOL_MAGNETIC_SUCTION_SPEED: Float = 420f
+    const val PROTOCOL_BOUNCY_RESTITUTION_BOOST: Float = 0.20f
+    const val PROTOCOL_BOUNCY_DRAIN_SCALE: Float = 0.65f
+    const val PROTOCOL_TEMPORAL_WINDOW: Float = 0.220f
+    const val PROTOCOL_TEMPORAL_GAIN: Float = 1.30f
+    const val PROTOCOL_DEEP_INK_MAX: Float = 1500f
+    const val PROTOCOL_DEEP_INK_REGEN_RATE: Float = 364f
+    const val PROTOCOL_NOVA_RADIUS: Float = 140f
+    const val PROTOCOL_NOVA_IMPULSE: Float = 380f
+    const val PROTOCOL_PRISM_BATTERY_THRESHOLD: Int = 8
+    const val PROTOCOL_DRONE_FIRE_RATE_SCALE: Float = 0.60f
 
     // ---------------------------------------------------------------------------------------------
     // Scoring, Altitude & Combo Multipliers

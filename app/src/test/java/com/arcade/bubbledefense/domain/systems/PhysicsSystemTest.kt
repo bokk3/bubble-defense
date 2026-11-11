@@ -406,16 +406,20 @@ class PhysicsSystemTest {
             obstacleType = GameConfig.TYPE_DRIFTER
         )
 
-        // Warm up JIT
-        for (i in 0 until 3000) {
+        // Warm up JIT across all branches (full HP, 1 HP mercy, and protocols)
+        for (i in 0 until 4000) {
             if (world.shieldSegments.count == 0) {
                 world.shieldSegments.spawn(100f, 800f, 900f, 800f, 0f, 0f, 1, 0)
             }
             if (world.obstacles.count == 0) {
                 world.obstacles.spawn(500f, 400f, 100f, 200f, 25f, 1f, 0.8f, GameConfig.TYPE_DRIFTER)
             }
+            if (i == 1000) world.bubbleHp = 1
+            if (i == 2000) world.activeProtocolsMask = 0xFF
             physicsSystem.stepSubstep(GameConfig.SUB_DT)
         }
+        world.activeProtocolsMask = 0
+        world.bubbleHp = 3
 
         val before = AllocationProbe.allocatedBytes()
 

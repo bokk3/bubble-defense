@@ -134,15 +134,26 @@ class PhysicsSystem(private val world: GameWorld) {
     // ---------------------------------------------------------------------------------------------
 
     private fun integrateObstacles(subDt: Float) {
-        val effectiveDt = if (world.activePowerType == GameConfig.POWER_CHRONO_WARP) {
-            subDt * GameConfig.POWER_CHRONO_TIMESCALE
+        val chronoScale = if (world.activePowerType == GameConfig.POWER_CHRONO_WARP) {
+            GameConfig.POWER_CHRONO_TIMESCALE
         } else {
-            subDt
+            1.0f
         }
+        val mercyScale = if (world.bubbleHp == 1) {
+            GameConfig.MERCY_THREAT_SPEED_SCALE
+        } else {
+            1.0f
+        }
+        val effectiveDt = subDt * chronoScale * mercyScale
+
+        val hasMagneticAegis = world.hasProtocol(GameConfig.PROTOCOL_MAGNETIC_AEGIS)
+        val magRadiusSq = GameConfig.PROTOCOL_MAGNETIC_RADIUS * GameConfig.PROTOCOL_MAGNETIC_RADIUS
+
         var i = 0
         while (i < world.obstacles.count) {
             val ox = world.obstacles.x[i]
             val oy = world.obstacles.y[i]
+            val oType = world.obstacles.type[i]
             val flags = world.obstacles.flags[i].toInt()
             val isParried = (flags and GameConfig.FLAG_PARRIED.toInt()) != 0
             val isDeflected = (flags and GameConfig.FLAG_DEFLECTED.toInt()) != 0
@@ -188,6 +199,19 @@ class PhysicsSystem(private val world: GameWorld) {
                 world.obstacles.vy[i] + GameConfig.GRAVITY_Y * effectiveDt
             }
             var nvx = world.obstacles.vx[i]
+
+            // Protocol 1: Magnetic Aegis suction for beneficial items (Prism Carrier & Armor Crystal)
+            if (hasMagneticAegis && (oType == GameConfig.TYPE_PRISM_CARRIER || oType == GameConfig.TYPE_ARMOR_CRYSTAL)) {
+                val dx = world.bubbleX - ox
+                val dy = world.bubbleY - oy
+                val distSq = dx * dx + dy * dy
+                if (distSq in 1f..magRadiusSq) {
+                    val dist = sqrt(distSq)
+                    val suctionForce = GameConfig.PROTOCOL_MAGNETIC_SUCTION_SPEED * effectiveDt
+                    nvx += (dx / dist) * suctionForce
+                    nvy += (dy / dist) * suctionForce
+                }
+            }
 
             // Terminal speed clamp
             val speedSq = nvx * nvx + nvy * nvy
@@ -365,18 +389,34 @@ class PhysicsSystem(private val world: GameWorld) {
         val segSwipeVy = world.shieldSegments.swipeVy[segIdx]
         val segAge = world.shieldSegments.age[segIdx]
 
+        val parryWindow = if (world.hasProtocol(GameConfig.PROTOCOL_TEMPORAL_BUFFER)) {
+            GameConfig.PROTOCOL_TEMPORAL_WINDOW
+        } else {
+            GameConfig.PARRY_WINDOW
+        }
+        val parryGain = if (world.hasProtocol(GameConfig.PROTOCOL_TEMPORAL_BUFFER)) {
+            GameConfig.PROTOCOL_TEMPORAL_GAIN
+        } else {
+            GameConfig.PARRY_GAIN
+        }
+
         val effSwipe = CollisionMath.effectiveSwipeVelocity(
             Vec2(segSwipeVx, segSwipeVy), segAge,
-            GameConfig.PARRY_WINDOW, GameConfig.PARRY_GAIN
+            parryWindow, parryGain
         )
 
-        // 3. Velocity reflection
-        val newV = CollisionMath.resolveVelocity(Vec2(vx, vy), effSwipe, contact.normal, rest)
+        // 3. Velocity reflection (with Bouncy Shields boost)
+        val effectiveRest = if (world.hasProtocol(GameConfig.PROTOCOL_BOUNCY_SHIELDS)) {
+            (rest + GameConfig.PROTOCOL_BOUNCY_RESTITUTION_BOOST).coerceAtMost(0.98f)
+        } else {
+            rest
+        }
+        val newV = CollisionMath.resolveVelocity(Vec2(vx, vy), effSwipe, contact.normal, effectiveRest)
         world.obstacles.vx[obsIdx] = newV.x
         world.obstacles.vy[obsIdx] = newV.y
 
         // 4. Calculate normal impulse for damage and feedback
-        val impulse = CollisionMath.normalImpulse(mass, Vec2(vx, vy), effSwipe, contact.normal, rest)
+        val impulse = CollisionMath.normalImpulse(mass, Vec2(vx, vy), effSwipe, contact.normal, effectiveRest)
         val isParry = CollisionMath.isParry(effSwipe, contact.normal, GameConfig.PARRY_MIN_NORMAL_SPEED)
 
         if (isParry) {
@@ -400,6 +440,7 @@ class PhysicsSystem(private val world: GameWorld) {
             // Award soft currency Prism on combo milestone (every 5 combo levels)
             if (world.comboCount % GameConfig.COMBO_MILESTONE_STEP == 0) {
                 world.prismsCollected += GameConfig.PRISMS_PER_COMBO_MILESTONE
+                world.addPrismHarvestProgress()
             }
 
             val bonus = if (obsType == GameConfig.TYPE_CRUSHER) {
@@ -408,6 +449,11 @@ class PhysicsSystem(private val world: GameWorld) {
                 (GameConfig.SCORE_PARRY_BASE_BONUS * world.comboMultiplier).toInt()
             }
             world.addScore(bonus)
+
+            // Protocol 6: Nova Deflection radial shockwave
+            if (world.hasProtocol(GameConfig.PROTOCOL_NOVA_DEFLECTION)) {
+                triggerNovaDeflection(contact.point.x, contact.point.y)
+            }
 
             // Spawn floating text & parry spark burst
             world.floatingTexts.spawn(
@@ -423,13 +469,19 @@ class PhysicsSystem(private val world: GameWorld) {
             spawnSparkBurst(contact.point.x, contact.point.y, contact.normal, count = 6, isParry = false)
         }
 
-        // 5. Shield segment damage, kinetic impact ripple & recoil
+        // 5. Shield segment damage, kinetic impact ripple & recoil (with Bouncy Shields drain scale)
+        val drainScale = if (world.hasProtocol(GameConfig.PROTOCOL_BOUNCY_SHIELDS)) {
+            GameConfig.PROTOCOL_BOUNCY_DRAIN_SCALE
+        } else {
+            1.0f
+        }
+
         world.shieldSegments.rippleTimer[segIdx] = 0.28f
         world.shieldSegments.rippleIntensity[segIdx] = (impulse / 100f).coerceIn(4f, 18f)
 
         if (obsType == GameConfig.TYPE_CRUSHER) {
             // Crusher drains 60% of max structural integrity and applies recoil
-            world.shieldSegments.integrity[segIdx] -= GameConfig.CRUSHER_INTEGRITY_DRAIN
+            world.shieldSegments.integrity[segIdx] -= GameConfig.CRUSHER_INTEGRITY_DRAIN * drainScale
             val recoilDist = GameConfig.CRUSHER_RECOIL_DISTANCE
             world.shieldSegments.ax[segIdx] -= contact.normal.x * recoilDist
             world.shieldSegments.ay[segIdx] -= contact.normal.y * recoilDist
@@ -451,7 +503,7 @@ class PhysicsSystem(private val world: GameWorld) {
             )
         } else if (obsType == GameConfig.TYPE_METEORITE) {
             // Meteorite deals heavy structural strain (50% integrity loss)
-            world.shieldSegments.integrity[segIdx] -= 50f
+            world.shieldSegments.integrity[segIdx] -= 50f * drainScale
             world.triggerHitStop(0.024f)
             world.addTrauma(0.30f)
             world.floatingTexts.spawn(
@@ -459,7 +511,7 @@ class PhysicsSystem(private val world: GameWorld) {
                 -60f, 0.40f, 1.1f, FloatingTextPool.TEXT_CRUSH
             )
         } else {
-            val damage = impulse * GameConfig.IMPACT_DAMAGE_PER_IMPULSE
+            val damage = impulse * GameConfig.IMPACT_DAMAGE_PER_IMPULSE * drainScale
             world.shieldSegments.integrity[segIdx] -= damage
         }
 
@@ -506,6 +558,27 @@ class PhysicsSystem(private val world: GameWorld) {
 
         world.floatingTexts.spawn(curX, curY - 10f, -60f, 0.40f, 1.1f, FloatingTextPool.TEXT_SPLIT)
         world.addScore((GameConfig.SCORE_SPLIT_BONUS * world.comboMultiplier).toInt())
+    }
+
+    private fun triggerNovaDeflection(cx: Float, cy: Float) {
+        val radiusSq = GameConfig.PROTOCOL_NOVA_RADIUS * GameConfig.PROTOCOL_NOVA_RADIUS
+        val impulse = GameConfig.PROTOCOL_NOVA_IMPULSE
+        for (i in 0 until world.obstacles.count) {
+            val ox = world.obstacles.x[i]
+            val oy = world.obstacles.y[i]
+            val dx = ox - cx
+            val dy = oy - cy
+            val distSq = dx * dx + dy * dy
+            if (distSq in 1f..radiusSq) {
+                val dist = sqrt(distSq)
+                val nx = dx / dist
+                val ny = dy / dist
+                world.obstacles.vx[i] += nx * impulse
+                world.obstacles.vy[i] += ny * impulse - 140f
+                world.obstacles.flags[i] = world.obstacles.flags[i] or GameConfig.FLAG_DEFLECTED
+            }
+        }
+        spawnSparkBurst(cx, cy, Vec2.UP, count = 12, isParry = true)
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -555,6 +628,7 @@ class PhysicsSystem(private val world: GameWorld) {
         if (obsType == GameConfig.TYPE_PRISM_CARRIER) {
             world.prismsCollected += GameConfig.PRISM_CARRIER_PRISMS_AWARDED
             world.bonusScore += GameConfig.PRISM_CARRIER_SCORE_AWARDED
+            world.addPrismHarvestProgress()
             if (world.bubbleHp < GameConfig.BUBBLE_MAX_HP) {
                 world.bubbleHp++
             }

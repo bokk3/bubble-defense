@@ -74,9 +74,21 @@ class ShieldInputSystem(private val world: GameWorld) {
                 if (world.inkCooldownTimer < 0f) {
                     world.inkCooldownTimer = 0f
                 }
-            } else if (world.ink < GameConfig.INK_MAX) {
+            } else {
+                val maxInk = if (world.hasProtocol(GameConfig.PROTOCOL_DEEP_INK_WELL)) {
+                    GameConfig.PROTOCOL_DEEP_INK_MAX
+                } else {
+                    GameConfig.INK_MAX
+                }
+                val baseRegen = if (world.hasProtocol(GameConfig.PROTOCOL_DEEP_INK_WELL)) {
+                    GameConfig.PROTOCOL_DEEP_INK_REGEN_RATE
+                } else {
+                    GameConfig.INK_REGEN_RATE
+                }
                 val regenMultiplier = if (world.solarFlareState == 2) GameConfig.SOLAR_FLARE_INK_SLOW_RATIO else 1.0f
-                world.ink = min(GameConfig.INK_MAX, world.ink + (GameConfig.INK_REGEN_RATE * regenMultiplier) * dt)
+                if (world.ink < maxInk) {
+                    world.ink = min(maxInk, world.ink + (baseRegen * regenMultiplier) * dt)
+                }
             }
         }
 

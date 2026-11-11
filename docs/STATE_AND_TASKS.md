@@ -27,7 +27,8 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.5.0`** | **Phase 10** | Procedural Algorithmic Music & Funky Void Grooves | **RELEASED** | 2026-11-11 |
 | **`v1.6.0`** | **Phase 11** | Tactical Grounding, Shield Kinetic Ripples & Prism Carriers | **RELEASED** | 2026-11-11 |
 | **`v1.7.0`** | **Phase 12** | Sideline Sentinel Drones & Tactical Prism Tech Tree | **RELEASED** | 2026-11-11 |
-| **`v1.8.0`** | **Phase 13** | Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers | **IN PROGRESS** | 2026-11-11 |
+| **`v1.8.0`** | **Phase 13** | Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers | **RELEASED** | 2026-11-11 |
+| **`v1.9.0`** | **Phase 14** | Roguelike Tactical Protocols & Dynamic Mercy Flow | **RELEASED** | 2026-11-11 |
 
 ---
 
@@ -414,6 +415,34 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
+### Phase 14: Roguelike Tactical Protocols & Dynamic Mercy Flow (`v1.9.0`) — [COMPLETED]
+- [x] **T14.1 Dynamic Mercy Flow & Early Difficulty Tuning** `[PHYS-AGENT]`, `[kinetic-flow-architect]`
+  - [x] Implement 1 HP Threat Slowdown: global obstacle integration speed scaled by $0.75\times$ (`-25%`) when `bubbleHp == 1`.
+  - [x] Implement Emergency Nano-Repair Relief: trigger emergency Green Armor Crystal spawn within $3.0\text{s}$ whenever down to 1 HP.
+  - [x] Widen warning chevrons from $350\text{ms}$ to $500\text{ms}$ (`THREAT_TELEGRAPH_TIME = 0.50f`).
+  - [x] Early wave curve rebalance: Wave 1 base threat rate $1.8\text{ budget/s}$, Needles unlock at $t \ge 28\text{s}$, Solar Flare gated to Wave 2+.
+- [x] **T14.2 8 Roguelike Tactical Protocols Engine** `[ARCH-AGENT]`, `[PHYS-AGENT]`, `[ECON-AGENT]`
+  - [x] Implement bitmask protocol state `activeProtocolsMask`, `hasProtocol()`, and `installProtocol()` in `GameWorld.kt`.
+  - [x] Protocol 1: `PROTOCOL_MAGNETIC_AEGIS` (suction beam drawing Prisms and Crystals from $300\text{ wu}$).
+  - [x] Protocol 2: `PROTOCOL_BOUNCY_SHIELDS` (+35% elasticity, -35% structural integrity drain on impact).
+  - [x] Protocol 3: `PROTOCOL_DRONE_OVERCLOCK` (+40% fire rate and 2-target laser piercing in `DroneSystem.kt`).
+  - [x] Protocol 4: `PROTOCOL_TEMPORAL_BUFFER` (widens Perfect Parry window to $220\text{ms}$, $+30\%$ impulse gain).
+  - [x] Protocol 5: `PROTOCOL_DEEP_INK_WELL` (+50% ink capacity to $1500\text{ wu}$, $+30\%$ ink regeneration rate).
+  - [x] Protocol 6: `PROTOCOL_NOVA_DEFLECTION` (parry emits a $140\text{ wu}$ radial shockwave deflecting adjacent hazards).
+  - [x] Protocol 7: `PROTOCOL_REPAIR_NANITES` (+1 HP/overshield on install, passive +1 HP regeneration every 500m).
+  - [x] Protocol 8: `PROTOCOL_PRISM_BATTERY` (harvesting 8 Prisms grants +1 Stored Special Power charge).
+- [x] **T14.3 Milestone Warp Chamber & Holographic Protocol Draft Modal** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Detect 250m milestone crossing in `PhysicsSystem.kt` ($250\text{m}, 500\text{m}, 750\text{m}, \dots$) and trigger Warp Chamber ($0.05\times$ time dilation).
+  - [x] Generate 3 randomized uninstalled/upgradable protocols via deterministic XorShift PRNG in `DirectorSystem.kt`.
+  - [x] Holographic Protocol Draft Composable modal in `GameScreen.kt` with live cards, stats, and installation actions.
+  - [x] Diegetic HUD active protocol badges and magnetic tractor particle trails in `ProceduralRenderer.kt`.
+- [x] **T14.4 Unit Tests, Zero-Alloc Verification & Release APK (v1.9.0)** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement `Phase14ProtocolsAndMercyTest.kt` verifying all 8 protocols, mercy slowdown, emergency crystals, and milestone warp triggers.
+  - [x] Verify zero heap allocations in hot paths across all systems (179/179 unit tests passing).
+  - [x] Assemble signed release APK `bubble-defense-v1.9.0.apk` (854 KB, Scheme v2 verified, AAPT verified) and publish to GitHub Releases.
+
+---
+
 ## 3. Known Edge Cases & Handling
 
 1. **Degenerate Segments (`lenSq <= 1e-8 wu²`):**
@@ -453,6 +482,29 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.9.0` (2026-11-11) — Phase 14: Roguelike Tactical Protocols & Dynamic Mercy Flow
+- **feat(mercy):** Dynamic Mercy Flow & Early Wave Pacing:
+  - 1 HP Threat Slowdown: Obstacle integration speed dynamically throttled by $0.75\times$ (`-25%`) when player is down to 1 Core HP (`bubbleHp == 1`), giving breathing room for clutch recovery.
+  - Emergency Green Armor Relief: Automatically schedules an emergency Green Armor Crystal spawn within $3.0\text{s}$ when down to 1 HP if none are currently on screen.
+  - Threat Warning Chevrons: Extended pre-spawn telegraph window from $350\text{ms}$ to $500\text{ms}$ (`THREAT_TELEGRAPH_TIME = 0.50f`) across upper horizon beacons.
+  - Wave 1 Curve Rebalance: Base threat generation rate tuned to $1.8\text{ budget/s}$, high-speed Needles delayed to $t \ge 28\text{s}$, and Solar Flare storms strictly gated to Wave 2+.
+- **feat(protocols):** 8 Roguelike Tactical Protocols Engine:
+  - Protocol 1: `PROTOCOL_MAGNETIC_AEGIS` — Tractor beam gravitating soft-currency Prisms and Armor Crystals within $300\text{ wu}$ toward the defense target.
+  - Protocol 2: `PROTOCOL_BOUNCY_SHIELDS` — Super-elastic energy barrier ($+35\%$ restitution, $-35\%$ shield integrity degradation per kinetic hit).
+  - Protocol 3: `PROTOCOL_DRONE_OVERCLOCK` — Overclocks sideline Sentinel Drones ($+40\%$ fire rate and dual-target piercing plasma strikes).
+  - Protocol 4: `PROTOCOL_TEMPORAL_BUFFER` — Expands tactile Perfect Parry execution window to $220\text{ms}$ with $+30\%$ reflected kinetic impulse.
+  - Protocol 5: `PROTOCOL_DEEP_INK_WELL` — Expands maximum drawing ink reservoir to $1500\text{ wu}$ ($+50\%$) and accelerates ink regeneration by $+30\%$.
+  - Protocol 6: `PROTOCOL_NOVA_DEFLECTION` — Parrying an incoming hazard releases a $140\text{ wu}$ radial shockwave blast deflecting adjacent threats.
+  - Protocol 7: `PROTOCOL_REPAIR_NANITES` — Immediately restores $+1\text{ HP}$ or charges an Overshield on installation, and passively regenerates $+1\text{ HP}$ at every 500m milestone.
+  - Protocol 8: `PROTOCOL_PRISM_BATTERY` — Harvesting 8 Prisms charges $+1$ Stored Special Power unit.
+- **feat(warp):** Milestone 250m Warp Chamber & Holographic Protocol Draft Modal:
+  - Every 250m milestone crossing ($250\text{m}, 500\text{m}, 750\text{m}, \dots$) triggers a Warp Chamber sequence with $0.05\times$ cinematic time dilation.
+  - Procedural XorShift PRNG drafts 3 distinct protocol upgrade cards, prioritizing uninstalled protocols.
+  - Holographic Protocol Draft Modal in Compose with zero runtime recomposition overhead during normal gameplay.
+  - Diegetic HUD active protocol badges displayed in top status strip.
+- **test(suite):** Full test suite expanded to **179/179 unit tests** (0 failures, 0 skipped, 0 heap allocations on hot paths).
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.9.0.apk` (854 KB, APK Signature Scheme v2 verified, `aapt dump badging` 0 errors).
 
 ### `v1.8.0` (2026-11-11) — Phase 13: Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers
 - **feat(armor):** Interactive Green Armor Crystals (`TYPE_ARMOR_CRYSTAL = 6`):
@@ -644,12 +696,11 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-11
-- **Current Version:** `v1.8.0` (RELEASED)
+- **Current Version:** `v1.9.0` (RELEASED)
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 13 COMPLETE (Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers)**:
-  - Interactive Green Armor Crystals (`TYPE_ARMOR_CRYSTAL = 6`) with contracting resonance timing ring; tapping restores +1 core HP or builds an Overshield Aegis Plate (at full 3 HP); drones safely ignore crystals.
-  - Dynamic Solar Flare Cataclysms (`TYPE_METEORITE = 7`) triggered when "things seem to be going good" (combo $\ge 4\text{x}$ or 14s sustained full HP): Phase 1 warning with coronal arches, siren, drone EMP reboot stun, and -35% solar ink drag; Phase 2 storm with heavy flaming meteorites. Unshielded damage breaches strip combo multipliers.
-  - 3 Stored Special Powers engine: Chrono Warp (0.25x time dilation), Supernova EMP Surge (+600 wu/s upward blast), Plasma Lance Overdrive (twin orbital center column lasers & EMP purge). Charges earned via 4 Perfect Parries.
-  - Tactical Special Powers Hotbar Dock in Compose with zero recomposition overhead.
-  - Verified with 167/167 unit tests passing, zero heap allocations on hot paths, signed release APK `bubble-defense-v1.8.0.apk` (874 KB, Scheme v2 verified).
-- **Next Task:** Solicit user feedback on power balance, solar storm intensity, and armor tap timing.
+- **Status:** **PHASE 14 COMPLETE (Roguelike Tactical Protocols & Dynamic Mercy Flow)**:
+  - Dynamic Mercy Flow: 1 HP Threat Slowdown (-25% hazard velocity), Emergency Green Armor Crystal relief within 3.0s, extended 500ms warning chevrons, Wave 1 pacing rebalance (Needles at $t \ge 28\text{s}$, Solar Flares gated to Wave 2+).
+  - 8 Roguelike Tactical Protocols: Bitmask state engine in `GameWorld.kt` supporting Magnetic Aegis (300 wu suction), Bouncy Shields (+35% elasticity, -35% drain), Drone Overclock (+40% fire rate, 2-target pierce), Temporal Buffer (220ms parry window, +30% impulse), Deep Ink Well (1500 wu tank, +30% regen), Nova Deflection (140 wu radial shockwave), Repair Nanites (+1 immediate HP/overshield, 500m regen), and Prism Battery (8 prisms = +1 special power).
+  - Milestone Warp Chamber & Holographic Protocol Draft Modal: Triggered at every 250m altitude milestone with 0.05x cinematic time dilation, drafting 3 randomized protocol upgrade cards with Compose phase hygiene.
+  - Verified with 179/179 unit tests passing, zero heap allocations on hot paths, signed release APK `bubble-defense-v1.9.0.apk` (854 KB, Scheme v2 verified, AAPT verified).
+- **Next Task:** Solicit player feedback on roguelike protocol builds, mercy recovery feel, and endless run depth.

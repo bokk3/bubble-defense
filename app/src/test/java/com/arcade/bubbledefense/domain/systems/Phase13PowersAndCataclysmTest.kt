@@ -117,8 +117,8 @@ class Phase13PowersAndCataclysmTest {
     fun solarFlare_triggersWhenComboHigh() {
         world.comboCount = GameConfig.SOLAR_FLARE_TRIGGER_COMBO
         directorSystem.solarFlareCooldown = 0f
-        world.currentWave = 1
-        world.directorWaveTimer = 2.0f // In CRUNCH phase
+        world.currentWave = 2
+        world.directorWaveTimer = 22.0f // In Wave 2 CRUNCH phase
 
         directorSystem.step(0.016f)
 

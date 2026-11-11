@@ -151,8 +151,32 @@ class DirectorSystem(
             spawnArchetype(GameConfig.TYPE_PRISM_CARRIER)
         }
 
-        // 7. Periodic Green Armor Crystal Spawn (Tactical Nano-Repair Matrix)
+        // 7. Periodic Green Armor Crystal Spawn & Dynamic Mercy Flow
         armorCrystalTimer += dt
+        if (world.bubbleHp == 1) {
+            // Check if any armor crystal is currently active on screen
+            var crystalActive = false
+            for (i in 0 until world.obstacles.count) {
+                if (world.obstacles.type[i] == GameConfig.TYPE_ARMOR_CRYSTAL) {
+                    crystalActive = true
+                    break
+                }
+            }
+            if (!crystalActive) {
+                world.emergencyCrystalTimer += dt
+                if (world.emergencyCrystalTimer >= GameConfig.MERCY_EMERGENCY_CRYSTAL_COOLDOWN &&
+                    world.obstacles.count < world.obstacles.capacity
+                ) {
+                    world.emergencyCrystalTimer = 0f
+                    spawnArchetype(GameConfig.TYPE_ARMOR_CRYSTAL)
+                }
+            } else {
+                world.emergencyCrystalTimer = 0f
+            }
+        } else {
+            world.emergencyCrystalTimer = 0f
+        }
+
         if (armorCrystalTimer >= GameConfig.ARMOR_CRYSTAL_SPAWN_INTERVAL &&
             world.obstacles.count < world.obstacles.capacity
         ) {
@@ -163,6 +187,75 @@ class DirectorSystem(
         // 8. Dynamic Solar Flare & Invasive Meteorite Shower Pacing
         world.timeSinceLastDamage += dt
         updateSolarFlareCataclysm(dt, isCrunch)
+
+        // 9. Milestone Warp Chamber Protocol Draft
+        checkMilestoneWarpDraft()
+    }
+
+    private fun checkMilestoneWarpDraft() {
+        val currentMilestoneIndex = (world.altitudeMeters / GameConfig.MILESTONE_WARP_INTERVAL_METERS).toInt()
+        if (currentMilestoneIndex > world.lastMilestoneWarp && !world.warpDraftActive) {
+            world.lastMilestoneWarp = currentMilestoneIndex
+            generateWarpDraftChoices()
+            world.warpDraftActive = true
+            world.timeScale = 0.05f
+            world.floatingTexts.spawn(world.bubbleX, world.bubbleY - 120f, -60f, 0.4f, 2.0f, com.arcade.bubbledefense.engine.pool.FloatingTextPool.TEXT_BOUNTY)
+
+            // Protocol 7: Repair Nanites passive 500m milestone regen
+            if (world.hasProtocol(GameConfig.PROTOCOL_REPAIR_NANITES) && currentMilestoneIndex % 2 == 0) {
+                if (world.bubbleHp < GameConfig.BUBBLE_MAX_HP) {
+                    world.bubbleHp++
+                } else {
+                    world.overshieldHp = GameConfig.MAX_OVERSHIELD_HP
+                }
+            }
+        }
+    }
+
+    /**
+     * Generates 3 distinct protocol choices from the pool of 8.
+     * Prioritizes uninstalled protocols so the player can build diverse synergies.
+     */
+    fun generateWarpDraftChoices() {
+        var uninstalledCount = 0
+        var allProtocols = 0
+        for (i in 0 until GameConfig.TOTAL_PROTOCOLS) {
+            val flag = 1 shl i
+            if (!world.hasProtocol(flag)) {
+                uninstalledCount++
+            }
+            allProtocols = allProtocols or flag
+        }
+
+        var selectedCount = 0
+        var selectedMask = 0
+
+        val candidatePoolMask = if (uninstalledCount >= 3) {
+            allProtocols and world.activeProtocolsMask.inv()
+        } else {
+            allProtocols
+        }
+
+        var attempts = 0
+        while (selectedCount < 3 && attempts < 50) {
+            attempts++
+            val bitIndex = (nextFloat() * GameConfig.TOTAL_PROTOCOLS).toInt().coerceIn(0, GameConfig.TOTAL_PROTOCOLS - 1)
+            val flag = 1 shl bitIndex
+            if ((candidatePoolMask and flag) != 0 && (selectedMask and flag) == 0) {
+                world.warpDraftChoices[selectedCount++] = flag
+                selectedMask = selectedMask or flag
+            }
+        }
+
+        // Fallback fill if needed
+        for (i in 0 until GameConfig.TOTAL_PROTOCOLS) {
+            if (selectedCount >= 3) break
+            val flag = 1 shl i
+            if ((selectedMask and flag) == 0) {
+                world.warpDraftChoices[selectedCount++] = flag
+                selectedMask = selectedMask or flag
+            }
+        }
     }
 
     private fun updateSolarFlareCataclysm(dt: Float, isCrunch: Boolean) {
@@ -171,10 +264,10 @@ class DirectorSystem(
             if (solarFlareCooldown > 0f) {
                 solarFlareCooldown -= dt
             }
-            // Trigger when things are going good! (High combo streak or sustained full health)
+            // Trigger when things are going good! (High combo streak or sustained full health, gated to Wave 2+)
             val thingsGoingGood = (world.comboCount >= GameConfig.SOLAR_FLARE_TRIGGER_COMBO ||
                 (world.bubbleHp == GameConfig.BUBBLE_MAX_HP && world.timeSinceLastDamage >= 14f))
-            if (thingsGoingGood && solarFlareCooldown <= 0f && world.currentWave >= 1 && isCrunch) {
+            if (thingsGoingGood && solarFlareCooldown <= 0f && world.currentWave >= 2 && isCrunch) {
                 // Enter Phase 1: Warning Telegraph
                 world.solarFlareState = 1
                 world.solarFlareTimer = GameConfig.SOLAR_FLARE_WARNING_DURATION

@@ -203,6 +203,7 @@ fun GameScreen(
     var drawTrigger by remember { mutableLongStateOf(0L) }
     var currentCharges by remember { mutableIntStateOf(world.storedPowerCharges) }
     var currentActivePower by remember { mutableIntStateOf(world.activePowerType) }
+    var currentWarpDraftActive by remember { mutableStateOf(world.warpDraftActive) }
 
     // 2. Drive 120Hz Display Render Loop via withFrameNanos
     LaunchedEffect(Unit) {
@@ -221,6 +222,9 @@ fun GameScreen(
                 }
                 if (currentActivePower != world.activePowerType) {
                     currentActivePower = world.activePowerType
+                }
+                if (currentWarpDraftActive != world.warpDraftActive) {
+                    currentWarpDraftActive = world.warpDraftActive
                 }
             }
         }
@@ -417,7 +421,63 @@ fun GameScreen(
             }
         }
 
-        // 6. Interactive Game Over Modal with Clutch Revive & Sub-300ms Instant Retry
+        // 6. Holographic Tactical Protocol Selection Modal (Milestone 250m Warp Chamber)
+        if (currentWarpDraftActive && currentGameState == GameState.PLAYING) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.78f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                ) {
+                    Text(
+                        text = "⚡ WARP CHAMBER // ${world.altitudeMeters.toInt()}m ⚡",
+                        color = ProceduralRenderer.COLOR_CYAN,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = tnumStyle
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "TACTICAL PROTOCOL DRAFT",
+                        color = ProceduralRenderer.COLOR_WHITE,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = tnumStyle
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Select 1 upgrade to augment your defense matrix",
+                        color = Color(0xFFA0B4C8),
+                        fontSize = 11.sp,
+                        style = tnumStyle
+                    )
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    for (c in 0 until 3) {
+                        val flag = world.warpDraftChoices[c]
+                        if (flag != 0) {
+                            ProtocolCard(
+                                flag = flag,
+                                isInstalled = world.hasProtocol(flag),
+                                onInstall = {
+                                    world.installProtocol(flag)
+                                    currentWarpDraftActive = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        // 7. Interactive Game Over Modal with Clutch Revive & Sub-300ms Instant Retry
         if (currentGameState == GameState.GAME_OVER) {
             Box(
                 modifier = Modifier
@@ -590,6 +650,7 @@ fun GameScreen(
                                     deathProcessed = false
                                     currentCharges = world.storedPowerCharges
                                     currentActivePower = world.activePowerType
+                                    currentWarpDraftActive = false
                                     world.state = GameState.PLAYING
                                     currentGameState = GameState.PLAYING
                                 }
@@ -654,6 +715,147 @@ private fun SpecialPowerButton(
                 fontFamily = FontFamily.Monospace,
                 style = TextStyle(fontFeatureSettings = "tnum")
             )
+        }
+    }
+}
+
+private data class ProtocolInfo(
+    val icon: String,
+    val title: String,
+    val desc: String,
+    val color: Color
+)
+
+/**
+ * Holographic Tactical Protocol Card Composable for Milestone 250m Warp Chamber Draft.
+ */
+@Composable
+private fun ProtocolCard(
+    flag: Int,
+    isInstalled: Boolean,
+    onInstall: () -> Unit
+) {
+    val info = when (flag) {
+        GameConfig.PROTOCOL_MAGNETIC_AEGIS -> ProtocolInfo(
+            icon = "🧲",
+            title = "MAGNETIC AEGIS",
+            desc = "Gravitational suction pulls Prisms & Armor Crystals directly to the bubble.",
+            color = ProceduralRenderer.COLOR_CYAN
+        )
+        GameConfig.PROTOCOL_BOUNCY_SHIELDS -> ProtocolInfo(
+            icon = "🛡️",
+            title = "BOUNCY SHIELDS",
+            desc = "Shields gain +35% kinetic bounce and withstand +1 extra impact (-35% integrity drain).",
+            color = ProceduralRenderer.COLOR_GREEN
+        )
+        GameConfig.PROTOCOL_DRONE_OVERCLOCK -> ProtocolInfo(
+            icon = "🛰️",
+            title = "SENTINEL OVERDRIVE",
+            desc = "Autonomous drones fire +40% faster and plasma beams pierce through up to 2 threats.",
+            color = ProceduralRenderer.COLOR_CYAN
+        )
+        GameConfig.PROTOCOL_TEMPORAL_BUFFER -> ProtocolInfo(
+            icon = "⏱️",
+            title = "TEMPORAL BUFFER",
+            desc = "Expands Perfect Parry window from 150ms to 220ms and boosts swipe impulse by +30%.",
+            color = ProceduralRenderer.COLOR_AMBER
+        )
+        GameConfig.PROTOCOL_DEEP_INK_WELL -> ProtocolInfo(
+            icon = "🔋",
+            title = "DEEP INK WELL",
+            desc = "+50% max ink capacity (1500 wu) and +30% faster ink regeneration speed.",
+            color = ProceduralRenderer.COLOR_CYAN
+        )
+        GameConfig.PROTOCOL_NOVA_DEFLECTION -> ProtocolInfo(
+            icon = "💥",
+            title = "NOVA BLAST",
+            desc = "Perfect Parries discharge a radial kinetic shockwave deflecting adjacent threats.",
+            color = ProceduralRenderer.COLOR_MAGENTA
+        )
+        GameConfig.PROTOCOL_REPAIR_NANITES -> ProtocolInfo(
+            icon = "🩹",
+            title = "REPAIR NANITES",
+            desc = "Instantly restores +1 HP / Overshield and passively regenerates +1 HP every 500m.",
+            color = ProceduralRenderer.COLOR_GREEN
+        )
+        GameConfig.PROTOCOL_PRISM_BATTERY -> ProtocolInfo(
+            icon = "⚡",
+            title = "PRISM REACTOR",
+            desc = "Harvesting 8 Prisms instantly charges +1 Stored Special Power charge.",
+            color = ProceduralRenderer.COLOR_AMBER
+        )
+        else -> ProtocolInfo(
+            icon = "✨",
+            title = "DEFENSE PROTOCOL",
+            desc = "Standard subsystem upgrade.",
+            color = ProceduralRenderer.COLOR_WHITE
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xD90A1220), RoundedCornerShape(12.dp))
+            .border(1.5.dp, info.color.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
+            .clickable { onInstall() }
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = info.icon,
+                fontSize = 26.sp,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = info.title,
+                        color = info.color,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        style = TextStyle(fontFeatureSettings = "tnum")
+                    )
+                    if (isInstalled) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "[ACTIVE]",
+                            color = ProceduralRenderer.COLOR_WHITE,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = info.desc,
+                    color = Color(0xFFA0B4C8),
+                    fontSize = 10.sp,
+                    lineHeight = 13.sp,
+                    fontFamily = FontFamily.Monospace,
+                    style = TextStyle(fontFeatureSettings = "tnum")
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .background(info.color.copy(alpha = 0.22f), RoundedCornerShape(6.dp))
+                    .border(1.dp, info.color, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = if (isInstalled) "STACK" else "INSTALL",
+                    color = info.color,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    style = TextStyle(fontFeatureSettings = "tnum")
+                )
+            }
         }
     }
 }

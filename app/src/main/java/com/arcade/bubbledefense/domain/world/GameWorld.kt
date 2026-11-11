@@ -159,6 +159,16 @@ class GameWorld(initialSeed: Int = 1337) {
     var empShockwaveRadius: Float = 0f
     var empShockwaveTimer: Float = 0f
 
+    // ---------------------------------------------------------------------------------------------
+    // Roguelike Tactical Protocols & Milestone Warp State
+    // ---------------------------------------------------------------------------------------------
+    var activeProtocolsMask: Int = 0
+    var lastMilestoneWarp: Int = 0
+    var warpDraftActive: Boolean = false
+    val warpDraftChoices = IntArray(3)
+    var emergencyCrystalTimer: Float = 0f
+    var prismBatteryProgress: Int = 0
+
     init {
         reset(initialSeed)
     }
@@ -220,6 +230,16 @@ class GameWorld(initialSeed: Int = 1337) {
         parriesSinceLastCharge = 0
         empShockwaveRadius = 0f
         empShockwaveTimer = 0f
+
+        // Reset Protocols & Warps
+        activeProtocolsMask = 0
+        lastMilestoneWarp = 0
+        warpDraftActive = false
+        warpDraftChoices[0] = 0
+        warpDraftChoices[1] = 0
+        warpDraftChoices[2] = 0
+        emergencyCrystalTimer = 0f
+        prismBatteryProgress = 0
 
         // Reset Juice
         trauma = 0f
@@ -345,6 +365,45 @@ class GameWorld(initialSeed: Int = 1337) {
         parriesSinceLastCharge++
         if (parriesSinceLastCharge >= GameConfig.PARRIES_PER_POWER_CHARGE) {
             parriesSinceLastCharge = 0
+            if (storedPowerCharges < GameConfig.MAX_STORED_POWERS) {
+                storedPowerCharges++
+                floatingTexts.spawn(bubbleX, bubbleY - 90f, -90f, 0.4f, 1.3f, FloatingTextPool.TEXT_BOUNTY)
+            }
+        }
+    }
+
+    /** Returns true if the given [protocolFlag] is currently active. */
+    fun hasProtocol(protocolFlag: Int): Boolean = (activeProtocolsMask and protocolFlag) != 0
+
+    /**
+     * Installs a selected tactical protocol, applying immediate benefits
+     * and resuming simulation from Warp Chamber.
+     */
+    fun installProtocol(protocolFlag: Int) {
+        activeProtocolsMask = activeProtocolsMask or protocolFlag
+        when (protocolFlag) {
+            GameConfig.PROTOCOL_REPAIR_NANITES -> {
+                if (bubbleHp < GameConfig.BUBBLE_MAX_HP) {
+                    bubbleHp++
+                } else {
+                    overshieldHp = GameConfig.MAX_OVERSHIELD_HP
+                }
+            }
+            GameConfig.PROTOCOL_DEEP_INK_WELL -> {
+                ink = GameConfig.PROTOCOL_DEEP_INK_MAX
+            }
+        }
+        warpDraftActive = false
+        timeScale = 1.0f
+        floatingTexts.spawn(bubbleX, bubbleY - 80f, -80f, 0.4f, 1.4f, FloatingTextPool.TEXT_BOUNTY)
+    }
+
+    /** Increments prism battery towards special power charges if PROTOCOL_PRISM_BATTERY is active. */
+    fun addPrismHarvestProgress() {
+        if (!hasProtocol(GameConfig.PROTOCOL_PRISM_BATTERY)) return
+        prismBatteryProgress++
+        if (prismBatteryProgress >= GameConfig.PROTOCOL_PRISM_BATTERY_THRESHOLD) {
+            prismBatteryProgress = 0
             if (storedPowerCharges < GameConfig.MAX_STORED_POWERS) {
                 storedPowerCharges++
                 floatingTexts.spawn(bubbleX, bubbleY - 90f, -90f, 0.4f, 1.3f, FloatingTextPool.TEXT_BOUNTY)
