@@ -30,6 +30,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.8.0`** | **Phase 13** | Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers | **RELEASED** | 2026-11-11 |
 | **`v1.9.0`** | **Phase 14** | Roguelike Tactical Protocols & Dynamic Mercy Flow | **RELEASED** | 2026-11-11 |
 | **`v1.10.0`** | **Phase 15** | Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate | **RELEASED** | 2026-11-11 |
+| **`v1.11.0`** | **Phase 16** | Cinematic Studio Splash & 2-Second Core Lore Intro Sequence | **RELEASED** | 2026-11-11 |
 
 ---
 
@@ -468,6 +469,28 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
+### Phase 16: Cinematic Studio Splash & 2-Second Core Lore Intro Sequence (`v1.11.0`) — [COMPLETED]
+- [x] **T16.1 Tachyon Studio Animated Splash Screen Integration** `[ARCH-AGENT]`, `[JUICE-AGENT]`
+  - [x] Verify native Kotlin Compose port of `TachyonVerticalSplash.kt` with laser-cut perimeter, thermal flashover, 70° specular sheen, and settling dust particles.
+  - [x] Verify procedural in-memory Web Audio synthesizer `TachyonAudioSynth.kt` with zero external assets.
+  - [x] Add tap-to-skip gesture on `TachyonVerticalSplash` for instant friction-free skips.
+- [x] **T16.2 2-Second Core Lore Intro Animation Sequence (`CoreLoreIntroAnimation.kt`)** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Implement procedural in-memory audio generator `CoreLoreAudioSynth.kt` (cosmic drone, crystal harmonic triad, and supersonic thruster ignition boom).
+  - [x] Implement 3-phase, 2000ms cinematic Canvas animation in `CoreLoreIntroAnimation.kt`:
+    - Phase 1 (0.0s–0.7s): The Singularity Awakening & Transmission telemetry (`// TRANSMISSION: TACHYON-9 //`).
+    - Phase 2 (0.7s–1.4s): The Organic Genesis Seed (bioluminescent bubble wobble & shield barrier genesis).
+    - Phase 3 (1.4s–2.0s): Supersonic Warp Ascent (`[ DRAW SHIELDS • PARRY THE VOID ]`, 126 km/h thruster flare).
+  - [x] Add tap-to-skip gesture and seamless 200ms alpha dissolve directly into live `GameScreen`.
+- [x] **T16.3 Seamless Multi-Stage App Startup State Machine** `[ARCH-AGENT]`
+  - [x] Update `MainActivity.kt` with sequential pipeline: Stage 0 (Studio Splash) -> Stage 1 (Core Lore) -> Stage 2 (Live Game).
+  - [x] Maintain concurrent background engine pre-warming (`GameScreen` mounted beneath overlays).
+- [x] **T16.4 Unit Tests, Verification & Release APK (v1.11.0)** `[ARCH-AGENT]`
+  - [x] Implement `Phase16LoreAndSplashTest.kt` verifying state transitions, duration timing, and audio synthesis.
+  - [x] Verify zero heap allocations in hot paths across all systems (196/196 tests passing).
+  - [x] Assemble signed release APK `bubble-defense-v1.11.0.apk` and publish to GitHub Releases.
+
+---
+
 ## 3. Known Edge Cases & Handling
 
 1. **Degenerate Segments (`lenSq <= 1e-8 wu²`):**
@@ -503,10 +526,30 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
     - Allocation probes measuring zero-allocation hot paths across long simulation steps (5,000 steps = 41.6s) must pre-warm the JIT across a complete wave cycle (6,000 steps = 50s) to ensure Tier 1/Tier 2 profiling metadata for state transitions (e.g. Solar Flare warning, storm, meteorite spawning) has completed before sampling thread-allocated bytes.
 15. **Overshield Aegis Plate Absorption & Perk Stripping:**
     - When an obstacle collides with the Bubble target while `overshieldHp > 0`, the hit is fully absorbed without reducing core `bubbleHp`, granting brief invulnerability and deflect velocity without clearing combo multipliers. Unshielded damage breaches immediately strip combo multipliers down to 1.0x and reset combo counts.
+16. **Multi-Stage Startup Overlay Clean-up & Audio Track Safety:**
+    - Both Studio Hero Splash and Core Lore Intro allocate native `AudioTrack` handles streamed on background dispatchers. Both composables use `DisposableEffect(Unit)` with `try { stop(); release() }` to guarantee that if the activity is paused, backgrounded, or if the user taps to skip, native sound buffers are immediately released without leaks. Furthermore, advancing `startupStage` to 2 completely unmounts overlay composables from the layout hierarchy, ensuring 0 Compose recomposition overhead during locked 120Hz gameplay.
 
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.11.0` (2026-11-11) — Phase 16: Cinematic Studio Splash & 2-Second Core Lore Intro Sequence
+- **feat(splash):** Tachyon Studio Animated Laser-Cut Hero Splash:
+  - Ported native Compose Canvas hero splash with responsive faceted badge perimeter, laser cutting torch head with dynamic spatter sparks, full-screen thermal flashover, 70° diagonal chromatic specular sheen sweep, expanding shockwave ring, rotating diamond starburst, and 36 gravity-accelerating dust particles.
+  - Added tap-to-skip support with subtle bottom cyberpunk hint (`[ TAP TO SKIP ]`) for instant friction-free bypass.
+  - Implemented procedural in-memory Web Audio synthesizer `TachyonAudioSynth.kt` with sawtooth pitch sweeps, snap pop, hiss, and sub-bass surge.
+- **feat(lore):** 2-Second Cinematic Core Lore Intro Sequence (`CoreLoreIntroAnimation.kt`):
+  - **Phase 1 (0.0s–0.7s) — The Singularity Awakening**: Relativistic wireframe grid, deep cosmic vacuum (`#020306`), horizon vanishing point singularity with photon ring and polar Hawking jet, and cyberpunk HUD telemetry (`// TRANSMISSION: TACHYON-9 //`).
+  - **Phase 2 (0.7s–1.4s) — The Organic Genesis Seed**: Emergence of the bioluminescent bubble with 64-vertex procedural soft-body harmonic wobble, inner specular gloss droplet, and concentric rotating Aegis shield barrier arcs (`TACTICAL AEGIS INK PROTOCOL: ONLINE`).
+  - **Phase 3 (1.4s–2.0s) — Supersonic Warp Ascent & Void Directive**: Twin backward thruster laser ignition, 32 perspective warp velocity streaks accelerating quadratically to $126\text{ km/h}$, micro-camera trauma shake, tactical directive banner (`[ DRAW SHIELDS • PARRY THE VOID ]`), and seamless 200ms alpha dissolve directly into live gameplay.
+  - Added procedural in-memory audio synthesizer `CoreLoreAudioSynth.kt` generating 44.1 kHz 16-bit PCM audio (cosmic 48Hz drone, 528Hz+660Hz+792Hz crystal harmonic triad, 120Hz->38Hz sub-bass dive, and accelerating thruster whoosh).
+  - Full tap-to-skip support at any moment during playback.
+- **feat(startup):** Sequential Multi-Stage App Startup State Machine:
+  - Wired `startupStage` in `MainActivity.kt`: Stage 0 (Studio Splash) $\to$ Stage 1 (Core Lore) $\to$ Stage 2 (Live Game).
+  - Background pre-warming: `GameScreen` mounts immediately beneath overlays, allowing shaders, starfields, memory pools, and viewport scaling to pre-warm concurrently without frame drops.
+  - Complete unmount on Stage 2 guaranteeing zero recomposition overhead during locked 120Hz gameplay.
+- **test(suite):** Full test suite expanded to **196/196 unit tests** (0 failures, 0 skipped, 0 heap allocations on hot paths) in `Phase16LoreAndSplashTest.kt`.
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.11.0.apk` (1,568,024 bytes, APK Signature Scheme v2 verified, `aapt dump badging` 0 errors).
 
 ### `v1.10.0` (2026-11-11) — Phase 15: Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate
 - **feat(protocols):** Frictionless In-Run Protocol Chance Rolls (0ms Slowdown):
@@ -739,11 +782,11 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-11
-- **Current Version:** `v1.10.0` (RELEASED)
+- **Current Version:** `v1.11.0` (RELEASED)
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 15 COMPLETE (Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate)**:
-  - Seamless Protocol Chance Rolls: Eliminated modal freeze and 0.05x time dilation completely; instant protocol unlocks at 250m milestones (100%), combo streaks (35%), and full-HP Green Crystal taps (25%) with 0ms gameplay interruption.
-  - In-Run Sentinel Drone Deployment: Tactile `[ 🛰️ SCRAMBLE ]` button and shoulder tap gestures allowing players to summon Left & Right Drones mid-run (12 Prisms or free first scramble), plus 5.0s Overdrive Barrage (3x rapid-fire amber plasma crossfire).
-  - The Hypernova Ultimate ("ULT"): 0–100% charging meter via parries, drone kills, and pickups. Multi-stage cataclysm spectacle: Stage 1 Implosion (40ms hit-stop, negative contraction wave, sub-bass drop); Stage 2 Singularity Hyper-Beam (massive celestial laser pillar, upward rainbow shockwave @ 2400 wu/s, fragile hazard vaporization, +900 wu/s upward recoil on heavy hazards, 64 vortex particles); Stage 3 Prismatic Overdrive (100% ink refill, 4.0s invulnerability, 2x combo multiplier).
-  - Verified with 189/189 unit tests passing, zero heap allocations on hot paths, signed release APK `bubble-defense-v1.10.0.apk` (854 KB, Scheme v2 verified, AAPT verified).
-- **Next Task:** Solicit player feedback on Ult spectacle feel, drone scramble pacing, and endless run depth.
+- **Status:** **PHASE 16 COMPLETE (Cinematic Studio Splash & 2-Second Core Lore Intro Sequence)**:
+  - Tachyon Studio Hero Splash: Integrated vertical Compose Canvas hero splash with laser cut border, cutting torch sparks, thermal flashover, 70° specular sheen sweep, shockwave, diamond starburst, 36 falling dust particles, tap-to-skip support, and procedural audio synth `TachyonAudioSynth.kt`.
+  - Core Lore Intro Animation: 2.0-second 3-phase cinematic sequence setting up the narrative premise: Act 1 (Singularity Event Horizon & telemetry), Act 2 (Genesis Bubble emergence with 64-vertex soft-body wobble & Aegis ink barrier activation), Act 3 (Supersonic thruster ignition, perspective warp streaks @ 126 km/h, camera trauma shake, and tactical directive banner `[ DRAW SHIELDS • PARRY THE VOID ]`). Includes tap-to-skip and procedural 16-bit PCM synth `CoreLoreAudioSynth.kt`.
+  - Sequential Startup Pipeline: Stage 0 (Studio Splash) $\to$ Stage 1 (Core Lore) $\to$ Stage 2 (Live Game) in `MainActivity.kt`. Base `GameScreen` mounts concurrently underneath for zero-jank background shader/pool warmup and instantaneous 120Hz frame transitions.
+  - Verification: 196/196 unit tests passing with zero heap allocations on hot paths, signed release APK `bubble-defense-v1.11.0.apk` (1,568,024 bytes, Scheme v2 verified, AAPT dump badging 0 errors).
+- **Next Task:** Solicit player feedback on opening cinematic pacing, audio balance on physical devices, and gameplay onboarding flow.

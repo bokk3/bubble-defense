@@ -8,8 +8,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.arcade.bubbledefense.R
 import kotlin.math.*
 import kotlin.random.Random
@@ -129,6 +133,12 @@ fun TachyonVerticalSplash(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFF030712))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                onSplashComplete()
+            }
             .alpha(globalAlpha),
         contentAlignment = Alignment.Center
     ) {
@@ -413,6 +423,20 @@ fun TachyonVerticalSplash(
             if (isFlash) {
                 drawRect(color = Color.White.copy(alpha = flashFrac * 0.60f))
             }
+        }
+
+        // Subtle cyberpunk tap-to-skip prompt
+        if (elapsed > 0.5f) {
+            Text(
+                text = "TAP TO SKIP",
+                color = Color(0xFF00F3FF).copy(alpha = 0.40f * globalAlpha),
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontSize = 11.sp,
+                letterSpacing = 2.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 36.dp)
+            )
         }
     }
 }
