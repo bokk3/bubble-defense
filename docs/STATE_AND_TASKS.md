@@ -25,6 +25,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.3.0`** | **Phase 8** | High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive | **RELEASED** | 2026-11-10 |
 | **`v1.4.0`** | **Phase 9** | Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere | **RELEASED** | 2026-11-11 |
 | **`v1.5.0`** | **Phase 10** | Procedural Algorithmic Music & Funky Void Grooves | **RELEASED** | 2026-11-11 |
+| **`v1.6.0`** | **Phase 11** | Tactical Grounding, Shield Kinetic Ripples & Prism Carriers | **RELEASED** | 2026-11-11 |
 
 ---
 
@@ -341,6 +342,29 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
   - [x] Verify signed `app-release.apk` with `apksigner.bat`.
   - [x] Git commit, tag `v1.5.0`, and create GitHub release.
 
+### Phase 11: Tactical Grounding, Shield Kinetic Ripples & Prism Carriers (`v1.6.0`) — [x]
+- [x] **T11.1 Ground the Shields (Corridor Rail Contact Nodes & Sparks)** `[JUICE-AGENT]`, `[ARCH-AGENT]`
+  - [x] Detect when player shield segment endpoints $(X, Y)$ intersect or approach the left ($X \le 135\text{ wu}$) or right ($X \ge 865\text{ wu}$) corridor rails.
+  - [x] Render energetic neon clamp nodes, dielectric micro-arcs, and vertical grounding sparks that anchor the player's 2.5D drawn shield into the 3D void slipstream corridor rails.
+- [x] **T11.2 Shield Kinetic Impact Ripples** `[PHYS-AGENT]`, `[JUICE-AGENT]`
+  - [x] Add pre-allocated `rippleTimer` and `rippleIntensity` arrays to `ShieldSegmentPool`.
+  - [x] On obstacle impact in `PhysicsSystem.kt`, trigger high-frequency ripple oscillator ($58\text{ Hz}$, $280\text{ms}$ duration).
+  - [x] In `ProceduralRenderer.kt`, deform the 3D extruded laser wall with localized sine ripples along the segment normal ($A \cdot \sin(\omega t)$), visually communicating kinetic force and structural strain.
+- [x] **T11.3 Emerald Prism Carrier Bounties** `[PHYS-AGENT]`, `[ECON-AGENT]`
+  - [x] Add `TYPE_PRISM_CARRIER = 5` in `GameConfig.kt` with distinct emerald diamond facets and spinning celestial quantum rings.
+  - [x] Periodic spawning in `DirectorSystem.kt` ($14.0\text{s}$ interval) during both Harvest and Crunch phases.
+  - [x] In `PhysicsSystem.kt`:
+    - Shield collision deflects cleanly without damaging shield structural integrity.
+    - Bubble collision absorbs bounty: repairs $+1$ Bubble HP, awards $+5$ Prisms, $+250$ bonus score, spawns floating `+5 PRISMS!` text and radiant emerald harvest sparks.
+- [x] **T11.4 Unit Tests & Zero-Allocation Verification** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] `bubbleCollision_withPrismCarrier_harvestsPrismsAndDoesNotDamageHp()` verified.
+  - [x] `shieldCollision_withObstacle_triggersKineticRipple()` verified.
+  - [x] `prismCarrier_spawnsPeriodically()` verified.
+  - [x] 147/147 unit tests passing with zero heap allocations.
+- [x] **T11.5 Release Candidate APK (v1.6.0) & GitHub Release** `[ARCH-AGENT]`
+  - [x] Verify signed `app-release.apk` with `aapt dump badging` and `apksigner.bat`.
+  - [x] Git commit, tag `v1.6.0`, and create GitHub release.
+
 ---
 
 ## 3. Known Edge Cases & Handling
@@ -515,17 +539,13 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-11
-- **Current Version:** `v1.5.0`
+- **Current Version:** `v1.6.0`
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 10 COMPLETE (v1.5.0 Procedural Algorithmic Music & Funky Void Grooves)**:
-  - Zero-asset, pure-Kotlin software DSP synthesizer engine (`VoidSynthEngine.kt`) streaming directly to `android.media.AudioTrack` in `MODE_STREAM` (44.1 kHz 16-bit PCM).
-  - Strudel / TidalCycles inspired algorithmic pattern sequencer (`PatternSequencer.kt`) featuring 32-step 16th-note clock scheduler with micro-swing pocket.
-  - Funky slap bass synthesis with 2-pole resonant State Variable Filter (SVF), snappy envelope modulation, and analog soft-clip saturation.
-  - Procedural drum synthesizers: punchy pitch-drop Kick (160 Hz -> 42 Hz with click transient), snappy bandpass Snare, and crisp 16th swing Hi-Hats.
-  - Continuous ambient space pad (minor-9th floating chords with 0.08 Hz LFO chorus) and crystalline arpeggio plucks.
-  - Kinetic game coupling: adaptive tempo ramping from 106 BPM to 136 BPM based on player velocity, arrangement shifts between Harvest and Crunch, and Shepard-tone laser glissandos on successful parries.
-  - Dedicated MAX_PRIORITY background audio daemon thread ensuring 0% UI frame drops and locked 120Hz Compose rendering.
-  - Fixed Android adaptive launcher vector icon resolving all AAPT badging and package installer warnings across all modern Android versions.
-  - Unit tests verified: 144 unit tests passing (100% pass rate, zero heap allocations).
-  - Production release APK assembled and signed (`bubble-defense-v1.5.0.apk`: APK Signature Scheme v2 verified).
-- **Next Task:** Live physical device testing with user.
+- **Status:** **PHASE 11 COMPLETE (v1.6.0 Tactical Grounding, Shield Kinetic Ripples & Prism Carriers)**:
+  - **Ground the Shields:** Pulsing neon rail clamp nodes and dielectric micro-arcs connecting player shield segment endpoints to the 3D corridor containment filaments when drawn within $35\text{ wu}$ of the lane curbs.
+  - **Kinetic Impact Ripples:** Dynamic $58\text{ Hz}$ sine wave deformation traveling along the shield normal upon obstacle collisions, visually communicating kinetic force and structural strain.
+  - **Emerald Prism Carrier Bounties:** Peaceful/bounty target (`TYPE_PRISM_CARRIER = 5`) with rotating emerald diamond facets, radiant crystal core, and spinning quantum rings. When caught by the bubble: repairs $+1$ Bubble HP, grants $+5$ Prisms, $+250$ score, and triggers floating `+5 PRISMS!` text with emerald harvest sparks.
+  - **Diegetic Bubble Fuel Gauge Polish:** Brightened multi-pass neon bloom and hot glowing tip cursor on the bubble's live ink arc.
+  - **Unit Test Coverage:** 147/147 unit tests passing (0 failures, zero heap allocations).
+  - **Production Release:** Signed release APK assembled and verified with Scheme v2 (`bubble-defense-v1.6.0.apk`).
+- **Next Task:** Live testing on physical hardware with user.

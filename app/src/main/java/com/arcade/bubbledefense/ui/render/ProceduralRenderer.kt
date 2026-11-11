@@ -72,7 +72,8 @@ class ProceduralRenderer {
             "+100",         // 4: TEXT_PLUS_100
             "SPLIT!",       // 5: TEXT_SPLIT
             "CRUSH!",       // 6: TEXT_CRUSH
-            "CLOSE CALL!"   // 7: TEXT_CLOSE_CALL
+            "CLOSE CALL!",  // 7: TEXT_CLOSE_CALL
+            "+5 PRISMS!"    // 8: TEXT_BOUNTY
         )
     }
 
@@ -602,17 +603,39 @@ class ProceduralRenderer {
             val midY = (say + sby) * 0.5f
             val depthScale = scaler.scaleLaneDepth(midY)
 
+            // Kinetic Impact Ripple Deformation (sine wave along segment normal upon impact)
+            val ripTimer = world.shieldSegments.rippleTimer[i]
+            val ripIntensity = world.shieldSegments.rippleIntensity[i]
+            val snx = world.shieldSegments.nx[i]
+            val sny = world.shieldSegments.ny[i]
+
+            val ripOffset = if (ripTimer > 0f) {
+                val rNorm = (ripTimer / 0.28f).coerceIn(0f, 1f)
+                sin(ripTimer * 58f) * ripIntensity * rNorm
+            } else 0f
+
+            val rOffX = snx * ripOffset * depthScale
+            val rOffY = sny * ripOffset * depthScale
+
             // Ground projected points
             val gax = scaler.worldLaneToScreenX(sax, say)
             val gay = scaler.worldLaneToScreenY(say)
             val gbx = scaler.worldLaneToScreenX(sbx, sby)
             val gby = scaler.worldLaneToScreenY(sby)
 
-            // Top elevated points (extruding upward along 3D height)
-            val tax = scaler.worldLaneToScreenX(sax, say)
-            val tay = scaler.worldLaneToScreenY(say, wallHeight)
-            val tbx = scaler.worldLaneToScreenX(sbx, sby)
-            val tby = scaler.worldLaneToScreenY(sby, wallHeight)
+            // Top elevated points (extruding upward along 3D height with kinetic ripple)
+            val tax = scaler.worldLaneToScreenX(sax, say) + rOffX
+            val tay = scaler.worldLaneToScreenY(say, wallHeight) + rOffY
+            val tbx = scaler.worldLaneToScreenX(sbx, sby) + rOffX
+            val tby = scaler.worldLaneToScreenY(sby, wallHeight) + rOffY
+
+            // Ground the Shields: Corridor Rail Clamping & Dielectric Sparks
+            if (sax <= 135f || sax >= 865f) {
+                drawRailClampNode(drawScope, gax, gay, depthScale, baseColor, fadeAlpha, isLeft = (sax <= 135f), time = world.gameTime)
+            }
+            if (sbx <= 135f || sbx >= 865f) {
+                drawRailClampNode(drawScope, gbx, gby, depthScale, baseColor, fadeAlpha, isLeft = (sbx <= 135f), time = world.gameTime)
+            }
 
             // 1. Translucent Extruded Energy Barrier Quad Fill
             scratchPath.rewind()
@@ -712,6 +735,45 @@ class ProceduralRenderer {
                 }
             }
         }
+    }
+
+    private fun drawRailClampNode(
+        drawScope: DrawScope,
+        px: Float,
+        py: Float,
+        depthScale: Float,
+        color: Color,
+        alpha: Float,
+        isLeft: Boolean,
+        time: Float
+    ) {
+        val nodeR = (5.5f * depthScale).coerceAtLeast(2.5f)
+        val center = Offset(px, py)
+
+        // Pulsing clamping halo
+        val pulse = 0.7f + 0.3f * sin(time * 16f)
+        drawScope.drawCircle(color.copy(alpha = 0.30f * alpha * pulse), radius = nodeR * 2.2f, center = center)
+        drawScope.drawCircle(COLOR_CYAN.copy(alpha = 0.85f * alpha), radius = nodeR, center = center)
+        drawScope.drawCircle(COLOR_WHITE.copy(alpha = 0.95f * alpha), radius = nodeR * 0.45f, center = center)
+
+        // Dielectric grounding micro-sparks jumping outward to containment filament
+        val sparkDirX = if (isLeft) -1f else 1f
+        val sparkLen = 14f * depthScale
+        val sparkJitter1 = sin(time * 42f) * 6f * depthScale
+        val sparkJitter2 = cos(time * 36f) * 6f * depthScale
+
+        drawScope.drawLine(
+            color = COLOR_WHITE.copy(alpha = 0.80f * alpha),
+            start = center,
+            end = Offset(px + sparkDirX * sparkLen, py + sparkJitter1),
+            strokeWidth = (1.5f * depthScale).coerceAtLeast(1f)
+        )
+        drawScope.drawLine(
+            color = COLOR_CYAN.copy(alpha = 0.60f * alpha),
+            start = center,
+            end = Offset(px + sparkDirX * sparkLen * 0.7f, py + sparkJitter2),
+            strokeWidth = (1.0f * depthScale).coerceAtLeast(0.8f)
+        )
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -886,7 +948,7 @@ class ProceduralRenderer {
 
         // Background track
         drawScope.drawArc(
-            color = COLOR_CYAN.copy(alpha = 0.12f),
+            color = COLOR_CYAN.copy(alpha = 0.16f),
             startAngle = 150f,
             sweepAngle = totalSweep,
             useCenter = false,
@@ -895,16 +957,36 @@ class ProceduralRenderer {
             style = strokeThickRing
         )
 
-        // Active ink arc
+        // Active ink arc (Multi-pass vibrant fuel gauge)
         if (currentSweep > 0f) {
+            // Pass A: Wide glow
             drawScope.drawArc(
-                color = inkColor.copy(alpha = 0.85f),
+                color = inkColor.copy(alpha = 0.35f),
+                startAngle = 150f,
+                sweepAngle = currentSweep,
+                useCenter = false,
+                topLeft = arcTopLeft,
+                size = arcSize,
+                style = strokeGlowMid
+            )
+            // Pass B: Solid body
+            drawScope.drawArc(
+                color = inkColor.copy(alpha = 0.95f),
                 startAngle = 150f,
                 sweepAngle = currentSweep,
                 useCenter = false,
                 topLeft = arcTopLeft,
                 size = arcSize,
                 style = strokeThickRing
+            )
+            // Pass C: Hot tip cursor
+            val tipAngleRad = (150f + currentSweep) * (PI.toFloat() / 180f)
+            val tipX = sbx + ringRadiusX * cos(tipAngleRad)
+            val tipY = sby + ringRadiusY * sin(tipAngleRad)
+            drawScope.drawCircle(
+                color = COLOR_WHITE,
+                radius = 3.5f,
+                center = Offset(tipX, tipY)
             )
         }
     }
@@ -967,6 +1049,7 @@ class ProceduralRenderer {
                 GameConfig.TYPE_CRUSHER -> drawCrusher3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
                 GameConfig.TYPE_SPLITTER -> drawSplitter3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
                 GameConfig.TYPE_SHARD -> drawShard3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
+                GameConfig.TYPE_PRISM_CARRIER -> drawPrismCarrier3D(drawScope, ox, oy, r, angle, depthScale, voidFogAlpha, world.gameTime)
             }
         }
     }
@@ -1164,6 +1247,77 @@ class ProceduralRenderer {
         drawScope.drawPath(obstaclePath, color = COLOR_WHITE.copy(alpha = voidFogAlpha), style = strokeWhiteCore)
     }
 
+    private fun drawPrismCarrier3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        angle: Float,
+        depthScale: Float,
+        voidFogAlpha: Float,
+        time: Float
+    ) {
+        val center = Offset(cx, cy)
+        val emeraldColor = Color(0xFF00FF99) // Soft currency prism emerald
+        val cyanColor = Color(0xFF00F0FF)
+
+        // 1. Outer Soft Emerald Glow Aura
+        val pulse = 0.5f + 0.5f * sin(time * 8f)
+        drawScope.drawCircle(
+            color = emeraldColor.copy(alpha = (0.24f + 0.12f * pulse) * voidFogAlpha),
+            radius = r + 12f * depthScale,
+            center = center
+        )
+
+        // 2. Orbiting Celestial Quantum Ring (Tilted ellipse rotating around the gem)
+        val ringW = r * 2.2f
+        val ringH = r * 0.85f
+        drawScope.drawOval(
+            color = cyanColor.copy(alpha = 0.65f * voidFogAlpha),
+            topLeft = Offset(cx - ringW * 0.5f, cy - ringH * 0.5f),
+            size = Size(ringW, ringH),
+            style = strokeCoreThin
+        )
+
+        // 3. Rotating Emerald Diamond Core (4 Diamond Facets)
+        val rot = angle + time * 2.5f
+        val cosR = cos(rot)
+        val sinR = sin(rot)
+        val dR = r * 1.25f
+        val topX = cx - sinR * dR
+        val topY = cy + cosR * dR
+        val botX = cx + sinR * dR
+        val botY = cy - cosR * dR
+        val rightX = cx + cosR * (dR * 0.70f)
+        val rightY = cy + sinR * (dR * 0.70f)
+        val leftX = cx - cosR * (dR * 0.70f)
+        val leftY = cy - sinR * (dR * 0.70f)
+
+        obstaclePath.rewind()
+        obstaclePath.moveTo(topX, topY)
+        obstaclePath.lineTo(rightX, rightY)
+        obstaclePath.lineTo(botX, botY)
+        obstaclePath.lineTo(leftX, leftY)
+        obstaclePath.close()
+
+        // Facet fill
+        drawScope.drawPath(obstaclePath, color = emeraldColor.copy(alpha = 0.45f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(obstaclePath, color = emeraldColor.copy(alpha = 0.95f * voidFogAlpha), style = strokeShieldMid)
+
+        // 4. Radiant White/Emerald Inner Crystal Core
+        drawScope.drawCircle(
+            color = COLOR_WHITE.copy(alpha = 0.90f * voidFogAlpha),
+            radius = r * 0.35f,
+            center = center
+        )
+        drawScope.drawCircle(
+            color = emeraldColor.copy(alpha = 0.60f * voidFogAlpha),
+            radius = r * 0.60f,
+            center = center,
+            style = strokeCoreThin
+        )
+    }
+
     // ---------------------------------------------------------------------------------------------
     // 3D Threat Telegraph Warning Indicators
     // ---------------------------------------------------------------------------------------------
@@ -1259,6 +1413,7 @@ class ProceduralRenderer {
                 FloatingTextPool.TEXT_PARRY.toInt() -> 0xFF00F0FF.toInt() // Neon Cyan
                 FloatingTextPool.TEXT_CRUSH.toInt() -> 0xFFFF3300.toInt() // Crimson
                 FloatingTextPool.TEXT_SPLIT.toInt() -> 0xFF00FF99.toInt() // Neon Green
+                FloatingTextPool.TEXT_BOUNTY.toInt() -> 0xFF00FF99.toInt() // Radiant Emerald Bounty
                 else -> 0xFFFFB800.toInt()                                // Amber
             }
             textPaint.alpha = (lifeRatio * 255).toInt().coerceIn(0, 255)

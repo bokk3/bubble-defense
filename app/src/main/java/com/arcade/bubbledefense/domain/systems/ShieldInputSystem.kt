@@ -86,6 +86,12 @@ class ShieldInputSystem(private val world: GameWorld) {
                     world.shieldSegments.flashTimer[i] = 0f
                 }
             }
+            if (world.shieldSegments.rippleTimer[i] > 0f) {
+                world.shieldSegments.rippleTimer[i] -= dt
+                if (world.shieldSegments.rippleTimer[i] < 0f) {
+                    world.shieldSegments.rippleTimer[i] = 0f
+                }
+            }
 
             val isExpired = world.shieldSegments.age[i] >= GameConfig.SEGMENT_LIFETIME
             val isBroken = world.shieldSegments.integrity[i] <= 0f

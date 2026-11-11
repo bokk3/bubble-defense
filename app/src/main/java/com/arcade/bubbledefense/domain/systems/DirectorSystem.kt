@@ -39,6 +39,7 @@ class DirectorSystem(
 
     /** Accumulator for soft currency prism generation during harvest valleys. */
     var harvestPrismTimer: Float = 0f
+    var prismCarrierTimer: Float = 0f
 
     /** Advances PRNG state and returns a pseudo-random integer. */
     fun nextInt(): Int {
@@ -136,6 +137,15 @@ class DirectorSystem(
                     argbColor = 0xFF00FF99.toInt()
                 )
             }
+        }
+
+        // 6. Periodic Emerald Prism Carrier Spawn (Tactical Bounty Target)
+        prismCarrierTimer += dt
+        if (prismCarrierTimer >= GameConfig.PRISM_CARRIER_SPAWN_INTERVAL &&
+            world.obstacles.count < world.obstacles.capacity
+        ) {
+            prismCarrierTimer = 0f
+            spawnArchetype(GameConfig.TYPE_PRISM_CARRIER)
         }
     }
 
@@ -252,6 +262,18 @@ class DirectorSystem(
                     angularVelocity = nextFloat(-1f, 1f)
                 )
             }
+            GameConfig.TYPE_PRISM_CARRIER -> {
+                val speed = nextFloat(GameConfig.PRISM_CARRIER_MIN_SPEED, GameConfig.PRISM_CARRIER_MAX_SPEED)
+                world.obstacles.spawn(
+                    posX = spawnX, posY = spawnY,
+                    velX = dirX * speed, velY = dirY * speed,
+                    colRadius = GameConfig.PRISM_CARRIER_RADIUS,
+                    mass = GameConfig.PRISM_CARRIER_MASS,
+                    colRestitution = GameConfig.PRISM_CARRIER_RESTITUTION,
+                    obstacleType = GameConfig.TYPE_PRISM_CARRIER,
+                    angularVelocity = nextFloat(-1.5f, 1.5f)
+                )
+            }
         }
     }
 
@@ -268,5 +290,6 @@ class DirectorSystem(
     fun reset(seed: Int = 1337) {
         rngState = if (seed != 0) seed else 1337
         harvestPrismTimer = 0f
+        prismCarrierTimer = 0f
     }
 }

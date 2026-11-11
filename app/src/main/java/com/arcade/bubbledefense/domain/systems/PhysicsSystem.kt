@@ -377,7 +377,10 @@ class PhysicsSystem(private val world: GameWorld) {
             spawnSparkBurst(contact.point.x, contact.point.y, contact.normal, count = 6, isParry = false)
         }
 
-        // 5. Shield segment damage & recoil
+        // 5. Shield segment damage, kinetic impact ripple & recoil
+        world.shieldSegments.rippleTimer[segIdx] = 0.28f
+        world.shieldSegments.rippleIntensity[segIdx] = (impulse / 100f).coerceIn(4f, 18f)
+
         if (obsType == GameConfig.TYPE_CRUSHER) {
             // Crusher drains 60% of max structural integrity and applies recoil
             world.shieldSegments.integrity[segIdx] -= GameConfig.CRUSHER_INTEGRITY_DRAIN
@@ -393,6 +396,12 @@ class PhysicsSystem(private val world: GameWorld) {
             world.floatingTexts.spawn(
                 contact.point.x, contact.point.y - 10f,
                 -60f, 0.40f, 1.1f, FloatingTextPool.TEXT_CRUSH
+            )
+        } else if (obsType == GameConfig.TYPE_PRISM_CARRIER) {
+            // Prism carrier bounces off shields cleanly without damaging integrity
+            world.floatingTexts.spawn(
+                contact.point.x, contact.point.y - 10f,
+                -50f, 0.35f, 1.0f, FloatingTextPool.TEXT_PLUS_5
             )
         } else {
             val damage = impulse * GameConfig.IMPACT_DAMAGE_PER_IMPULSE
@@ -485,6 +494,23 @@ class PhysicsSystem(private val world: GameWorld) {
     private fun handleBubbleHit(obsIdx: Int) {
         val ox = world.obstacles.x[obsIdx]
         val oy = world.obstacles.y[obsIdx]
+        val obsType = world.obstacles.type[obsIdx]
+
+        // Peaceful Emerald Prism Carrier Bounty
+        if (obsType == GameConfig.TYPE_PRISM_CARRIER) {
+            world.prismsCollected += GameConfig.PRISM_CARRIER_PRISMS_AWARDED
+            world.bonusScore += GameConfig.PRISM_CARRIER_SCORE_AWARDED
+            if (world.bubbleHp < GameConfig.BUBBLE_MAX_HP) {
+                world.bubbleHp++
+            }
+            world.floatingTexts.spawn(
+                world.bubbleX, world.bubbleY - 40f,
+                -70f, 0.50f, 1.3f, FloatingTextPool.TEXT_BOUNTY
+            )
+            spawnSparkBurst(ox, oy, Vec2.UP, count = 16, isParry = true)
+            world.obstacles.removeAt(obsIdx)
+            return
+        }
 
         if (world.bubbleInvulnTimer <= 0f) {
             world.bubbleHp--

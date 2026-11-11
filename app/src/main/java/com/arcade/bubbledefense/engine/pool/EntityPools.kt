@@ -153,6 +153,8 @@ class ShieldSegmentPool(val capacity: Int = GameConfig.SHIELD_SEGMENT_POOL_CAPAC
     val strokeId = IntArray(capacity)
     val pointerId = IntArray(capacity)
     val flashTimer = FloatArray(capacity)
+    val rippleTimer = FloatArray(capacity)
+    val rippleIntensity = FloatArray(capacity)
     val id = IntArray(capacity)
 
     /**
@@ -225,6 +227,8 @@ class ShieldSegmentPool(val capacity: Int = GameConfig.SHIELD_SEGMENT_POOL_CAPAC
         strokeId[index] = stroke
         pointerId[index] = pointer
         flashTimer[index] = 0f
+        rippleTimer[index] = 0f
+        rippleIntensity[index] = 0f
         id[index] = nextSegmentId++
         return index
     }
@@ -249,6 +253,8 @@ class ShieldSegmentPool(val capacity: Int = GameConfig.SHIELD_SEGMENT_POOL_CAPAC
             strokeId[index] = strokeId[last]
             pointerId[index] = pointerId[last]
             flashTimer[index] = flashTimer[last]
+            rippleTimer[index] = rippleTimer[last]
+            rippleIntensity[index] = rippleIntensity[last]
             id[index] = id[last]
         }
     }
@@ -363,6 +369,7 @@ class FloatingTextPool(val capacity: Int = GameConfig.FLOATING_TEXT_POOL_CAPACIT
         const val TEXT_SPLIT: Byte = 5
         const val TEXT_CRUSH: Byte = 6
         const val TEXT_CLOSE_CALL: Byte = 7
+        const val TEXT_BOUNTY: Byte = 8
     }
 
     fun spawn(

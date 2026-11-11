@@ -337,6 +337,57 @@ class PhysicsSystemTest {
     }
 
     @Test
+    fun bubbleCollision_withPrismCarrier_harvestsPrismsAndDoesNotDamageHp() {
+        world.reset()
+        world.bubbleHp = 2 // Damaged bubble (2/3 HP)
+        val initPrisms = world.prismsCollected
+        val initScore = world.bonusScore
+
+        world.obstacles.spawn(
+            posX = world.bubbleX,
+            posY = world.bubbleY - world.bubbleRadius - 5f,
+            velX = 0f, velY = 100f,
+            colRadius = GameConfig.PRISM_CARRIER_RADIUS,
+            mass = GameConfig.PRISM_CARRIER_MASS,
+            colRestitution = GameConfig.PRISM_CARRIER_RESTITUTION,
+            obstacleType = GameConfig.TYPE_PRISM_CARRIER
+        )
+
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+
+        // Bubble HP should be repaired (+1 up to max), NOT damaged!
+        assertEquals(3, world.bubbleHp)
+        assertEquals(initPrisms + GameConfig.PRISM_CARRIER_PRISMS_AWARDED, world.prismsCollected)
+        assertEquals(initScore + GameConfig.PRISM_CARRIER_SCORE_AWARDED, world.bonusScore)
+        assertEquals(0, world.obstacles.count)
+    }
+
+    @Test
+    fun shieldCollision_withObstacle_triggersKineticRipple() {
+        world.reset()
+        world.shieldSegments.spawn(
+            startX = 400f, startY = 1000f,
+            endX = 600f, endY = 1000f,
+            velSwipeX = 0f, velSwipeY = 0f,
+            stroke = 1, pointer = 0
+        )
+
+        world.obstacles.spawn(
+            posX = 500f, posY = 985f,
+            velX = 0f, velY = 300f,
+            colRadius = GameConfig.DRIFTER_RADIUS,
+            mass = GameConfig.DRIFTER_MASS,
+            colRestitution = GameConfig.DRIFTER_RESTITUTION,
+            obstacleType = GameConfig.TYPE_DRIFTER
+        )
+
+        physicsSystem.stepSubstep(GameConfig.SUB_DT)
+
+        assertTrue("Shield segment should have non-zero ripple timer upon impact", world.shieldSegments.rippleTimer[0] > 0f)
+        assertTrue("Shield segment should have non-zero ripple intensity", world.shieldSegments.rippleIntensity[0] > 0f)
+    }
+
+    @Test
     fun zeroAllocation_probe_physicsSystem() {
         if (!AllocationProbe.isAvailable) return
         AllocationProbe.warmUp()

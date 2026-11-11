@@ -222,11 +222,22 @@ object GameConfig {
     const val TYPE_CRUSHER: Byte = 2
     const val TYPE_SPLITTER: Byte = 3
     const val TYPE_SHARD: Byte = 4
+    const val TYPE_PRISM_CARRIER: Byte = 5
 
     const val FLAG_HAS_SPLIT: Int = 1 shl 0
     const val FLAG_CCD: Int = 1 shl 1
     const val FLAG_DEFLECTED: Int = 1 shl 2
     const val FLAG_PARRIED: Int = 1 shl 3
+
+    // Prism Carrier (Peaceful Emerald Bounty Orb)
+    const val PRISM_CARRIER_RADIUS: Float = 22f
+    const val PRISM_CARRIER_MASS: Float = 0.8f
+    const val PRISM_CARRIER_RESTITUTION: Float = 0.85f
+    const val PRISM_CARRIER_MIN_SPEED: Float = 200f
+    const val PRISM_CARRIER_MAX_SPEED: Float = 320f
+    const val PRISM_CARRIER_SPAWN_INTERVAL: Float = 14.0f
+    const val PRISM_CARRIER_PRISMS_AWARDED: Int = 5
+    const val PRISM_CARRIER_SCORE_AWARDED: Int = 250
 
     // Drifter
     const val DRIFTER_RADIUS: Float = 28f

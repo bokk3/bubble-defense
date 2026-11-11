@@ -152,6 +152,24 @@ class DirectorSystemTest {
     }
 
     @Test
+    fun prismCarrier_spawnsPeriodically() {
+        world.reset()
+        world.obstacles.clear()
+
+        // Step past PRISM_CARRIER_SPAWN_INTERVAL (14.0s)
+        director.step(GameConfig.PRISM_CARRIER_SPAWN_INTERVAL + 0.1f)
+
+        var hasPrismCarrier = false
+        for (i in 0 until world.obstacles.count) {
+            if (world.obstacles.type[i] == GameConfig.TYPE_PRISM_CARRIER) {
+                hasPrismCarrier = true
+                break
+            }
+        }
+        assertTrue("Expected a Prism Carrier obstacle to spawn after spawn interval", hasPrismCarrier)
+    }
+
+    @Test
     fun infiniteWaves_progressesBeyondWave1_andTriggersAnnouncements() {
         world.reset()
         assertEquals(1, world.currentWave)
