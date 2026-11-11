@@ -23,6 +23,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * High-performance zero-allocation procedural 2.5D Canvas renderer.
@@ -161,7 +162,9 @@ class ProceduralRenderer {
         world: GameWorld,
         scaler: ViewportScaler,
         alpha: Float,
-        droneSystem: DroneSystem? = null
+        droneSystem: DroneSystem? = null,
+        spaceFloatSystem: com.arcade.bubbledefense.domain.systems.SpaceFloatSystem? = null,
+        enemyAISystem: com.arcade.bubbledefense.domain.systems.EnemyAISystem? = null
     ) {
         // 1. Draw Deep Cyberpunk Void Background
         drawScope.drawRect(COLOR_BG)
@@ -169,10 +172,10 @@ class ProceduralRenderer {
         // 2. Draw Deep Space Cosmic Void, Nebulae & Event Horizon Singularity
         drawSkyAndHorizon(drawScope, world, scaler)
 
-        // 3. Draw Gravitational Void Slipstream (Translucent corridor, spacetime filaments, spectral containment)
+        // 3. Draw Unbounded 3D Deep Space Spacetime Coordinate Field
         drawVoidSlipstream(drawScope, world, scaler)
 
-        // 4. Draw Silent Void Relics (Monoliths & Suspended Spatial Warp Rings)
+        // 4. Draw Silent Void Relics (Drifting Asteroid Formations & Suspended Spatial Warp Rings)
         drawRoadsideAssets(drawScope, world, scaler)
 
         // 5. Draw Active Particles & Sensory Juice VFX (Shockwaves, Warp Streaks, Space Dust, Abyssal Vignette)
@@ -182,11 +185,11 @@ class ProceduralRenderer {
         // 6. Draw Extruded 3D Neon Energy Walls
         drawShieldSegments(drawScope, world, scaler)
 
-        // 7. Draw 3D Defense Bubble with Bioluminescent Local Light Oasis, Wobble & Ink Ring
-        drawBubble(drawScope, world, scaler)
+        // 7. Draw 3D Defense Bubble with Zero-G Float, Wobble, Orbiting Satellites & RCS Thrusters
+        drawBubble(drawScope, world, scaler, spaceFloatSystem)
 
-        // 8. Draw Depth-Sorted Incoming Obstacles with Atmospheric Void Fog
-        drawObstacles(drawScope, world, scaler)
+        // 8. Draw Depth-Sorted Incoming Obstacles & Predatory Enemies with Atmospheric Void Fog
+        drawObstacles(drawScope, world, scaler, enemyAISystem)
 
         // 8b. Draw Sideline Sentinel Drones & Interceptor Beams
         if (droneSystem != null && world.droneLevel > 0) {
@@ -433,46 +436,23 @@ class ProceduralRenderer {
         scaler: ViewportScaler
     ) {
         val cameraY = scaler.camera.cameraY
-        val leftCurbX = GameConfig.LANE_LEFT_CURB_X
-        val rightCurbX = GameConfig.LANE_RIGHT_CURB_X
+        val spaceLeftX = -350f
+        val spaceRightX = 1350f
         val time = world.gameTime
 
-        // 1. Slipstream Surface (Translucent dark corridor over the abyss)
-        val topY = 0f
-        val botY = cameraY
-
-        val tlx = scaler.worldLaneToScreenX(leftCurbX, topY)
-        val tly = scaler.worldLaneToScreenY(topY)
-        val trx = scaler.worldLaneToScreenX(rightCurbX, topY)
-        val try_ = scaler.worldLaneToScreenY(topY)
-
-        val blx = scaler.worldLaneToScreenX(leftCurbX, botY)
-        val bly = scaler.worldLaneToScreenY(botY)
-        val brx = scaler.worldLaneToScreenX(rightCurbX, botY)
-        val bry = scaler.worldLaneToScreenY(botY)
-
-        highwayPath.rewind()
-        highwayPath.moveTo(tlx, tly)
-        highwayPath.lineTo(trx, try_)
-        highwayPath.lineTo(brx, bry)
-        highwayPath.lineTo(blx, bly)
-        highwayPath.close()
-
-        drawScope.drawPath(highwayPath, color = COLOR_LANE_BG, style = Fill)
-
-        // 2. Spacetime Coordinate Filaments (Faint horizontal crosslines)
+        // 1. Spacetime Coordinate Filaments across Boundless Deep Space (Faint horizontal crosslines)
         val crosslineSpacing = GameConfig.FLOOR_CROSSLINE_SPACING_WU
         val scrollOffset = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % crosslineSpacing
 
         var lineY = scrollOffset
         while (lineY <= cameraY) {
-            val clx = scaler.worldLaneToScreenX(leftCurbX, lineY)
-            val crx = scaler.worldLaneToScreenX(rightCurbX, lineY)
+            val clx = scaler.worldLaneToScreenX(spaceLeftX, lineY)
+            val crx = scaler.worldLaneToScreenX(spaceRightX, lineY)
             val cly = scaler.worldLaneToScreenY(lineY)
             val depthScale = scaler.scaleLaneDepth(lineY)
 
-            val lineAlpha = (depthScale * 0.16f).coerceIn(0.02f, 0.20f)
-            val strokeW = (1.5f * depthScale).coerceAtLeast(0.8f)
+            val lineAlpha = (depthScale * 0.12f).coerceIn(0.015f, 0.15f)
+            val strokeW = (1.2f * depthScale).coerceAtLeast(0.6f)
 
             drawScope.drawLine(
                 color = COLOR_VIOLET.copy(alpha = lineAlpha),
@@ -483,18 +463,36 @@ class ProceduralRenderer {
             lineY += crosslineSpacing
         }
 
-        // 3. Center Quantum Conduit (Ethereal guide laser humming down center)
-        val centerPulse = 0.12f + 0.08f * sin(time * 6f)
+        // 2. Open Space Perspective Coordinate Rays (Radiating from Singularity Vanishing Point)
+        val vanishingX = scaler.worldLaneToScreenX(500f, 0f)
+        val vanishingY = scaler.worldLaneToScreenY(0f)
+        val rayCount = 12
+        for (r in 0 until rayCount) {
+            val rayWx = -300f + r * (1600f / (rayCount - 1))
+            val rayBotX = scaler.worldLaneToScreenX(rayWx, cameraY)
+            val rayBotY = scaler.worldLaneToScreenY(cameraY)
+
+            val rayAlpha = (0.05f + 0.03f * sin(time * 3f + r * 1.5f)).coerceIn(0.02f, 0.10f)
+            drawScope.drawLine(
+                color = COLOR_PHANTOM_CYAN.copy(alpha = rayAlpha),
+                start = Offset(vanishingX, vanishingY),
+                end = Offset(rayBotX, rayBotY),
+                strokeWidth = 1f
+            )
+        }
+
+        // 3. Central Quantum Ascent Guidance Ray
+        val centerPulse = 0.14f + 0.08f * sin(time * 6f)
         val p1x = scaler.worldLaneToScreenX(GameConfig.BUBBLE_CENTER_X, 0f)
         val p1y = scaler.worldLaneToScreenY(0f)
         val p2x = scaler.worldLaneToScreenX(GameConfig.BUBBLE_CENTER_X, cameraY)
         val p2y = scaler.worldLaneToScreenY(cameraY)
 
         drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = centerPulse * 0.5f),
+            color = COLOR_CYAN.copy(alpha = centerPulse * 0.4f),
             start = Offset(p1x, p1y),
             end = Offset(p2x, p2y),
-            strokeWidth = 6f
+            strokeWidth = 4f
         )
         drawScope.drawLine(
             color = COLOR_CYAN.copy(alpha = centerPulse),
@@ -502,81 +500,6 @@ class ProceduralRenderer {
             end = Offset(p2x, p2y),
             strokeWidth = 1.2f
         )
-
-        // 4. Spectral Containment Filaments (Left & Right Corridor Boundaries)
-        val vibL = sin(time * 18f) * 1.2f
-        val vibR = cos(time * 18f) * 1.2f
-
-        // Left Spectral Filament (Violet wide glow + Cyan core)
-        drawScope.drawLine(
-            color = COLOR_VIOLET.copy(alpha = 0.25f),
-            start = Offset(tlx, tly),
-            end = Offset(blx + vibL, bly),
-            strokeWidth = 10f,
-            cap = StrokeCap.Round
-        )
-        drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = 0.80f),
-            start = Offset(tlx, tly),
-            end = Offset(blx + vibL, bly),
-            strokeWidth = 2.5f,
-            cap = StrokeCap.Round
-        )
-        drawScope.drawLine(
-            color = COLOR_WHITE.copy(alpha = 0.90f),
-            start = Offset(tlx, tly),
-            end = Offset(blx + vibL, bly),
-            strokeWidth = 1f,
-            cap = StrokeCap.Round
-        )
-
-        // Right Spectral Filament
-        drawScope.drawLine(
-            color = COLOR_VIOLET.copy(alpha = 0.25f),
-            start = Offset(trx, try_),
-            end = Offset(brx + vibR, bry),
-            strokeWidth = 10f,
-            cap = StrokeCap.Round
-        )
-        drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = 0.80f),
-            start = Offset(trx, try_),
-            end = Offset(brx + vibR, bry),
-            strokeWidth = 2.5f,
-            cap = StrokeCap.Round
-        )
-        drawScope.drawLine(
-            color = COLOR_WHITE.copy(alpha = 0.90f),
-            start = Offset(trx, try_),
-            end = Offset(brx + vibR, bry),
-            strokeWidth = 1f,
-            cap = StrokeCap.Round
-        )
-
-        // 5. Quantum Containment Nodes (Pulsing Synapses along boundaries)
-        val nodePeriod = 90f
-        val nodeScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % nodePeriod
-        var nodeY = nodeScroll
-        while (nodeY <= cameraY) {
-            val depthScale = scaler.scaleLaneDepth(nodeY)
-            val nodeAlpha = (depthScale * 0.70f).coerceIn(0.10f, 0.85f)
-            val nodeR = (3f * depthScale).coerceAtLeast(1.2f)
-
-            val nlx = scaler.worldLaneToScreenX(leftCurbX, nodeY)
-            val nly = scaler.worldLaneToScreenY(nodeY)
-            val nrx = scaler.worldLaneToScreenX(rightCurbX, nodeY)
-            val nry = scaler.worldLaneToScreenY(nodeY)
-
-            // Left Node
-            drawScope.drawCircle(COLOR_CYAN.copy(alpha = nodeAlpha * 0.4f), radius = nodeR * 2.2f, center = Offset(nlx, nly))
-            drawScope.drawCircle(COLOR_WHITE.copy(alpha = nodeAlpha), radius = nodeR, center = Offset(nlx, nly))
-
-            // Right Node
-            drawScope.drawCircle(COLOR_CYAN.copy(alpha = nodeAlpha * 0.4f), radius = nodeR * 2.2f, center = Offset(nrx, nry))
-            drawScope.drawCircle(COLOR_WHITE.copy(alpha = nodeAlpha), radius = nodeR, center = Offset(nrx, nry))
-
-            nodeY += nodePeriod
-        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -831,12 +754,23 @@ class ProceduralRenderer {
     private fun drawBubble(
         drawScope: DrawScope,
         world: GameWorld,
-        scaler: ViewportScaler
+        scaler: ViewportScaler,
+        spaceFloat: com.arcade.bubbledefense.domain.systems.SpaceFloatSystem? = null
     ) {
-        val sbx = scaler.worldLaneToScreenX(world.bubbleX, world.bubbleY)
-        val sby = scaler.worldLaneToScreenY(world.bubbleY)
-        val sbr = scaler.scaleLaneDistance(world.bubbleRadius, world.bubbleY)
+        val floatX = spaceFloat?.offsetX ?: 0f
+        val floatY = spaceFloat?.offsetY ?: 0f
+        val curBubbleX = world.bubbleX + floatX
+        val curBubbleY = world.bubbleY + floatY
+
+        val sbx = scaler.worldLaneToScreenX(curBubbleX, curBubbleY)
+        val sby = scaler.worldLaneToScreenY(curBubbleY)
+        val sbr = scaler.scaleLaneDistance(world.bubbleRadius, curBubbleY)
         val time = world.gameTime
+
+        // Orbiting satellites behind bubble (Z < 0)
+        if (spaceFloat != null) {
+            drawOrbitingSatellites(drawScope, sbx, sby, sbr, spaceFloat, isFront = false)
+        }
 
         // 0. Bioluminescent Local Light Oasis (Illuminating the nearby void)
         val lightR = sbr * 2.5f
@@ -1105,6 +1039,89 @@ class ProceduralRenderer {
                 style = strokeThickRing
             )
         }
+
+        // RCS micro-thruster cold-gas plumes (left, right, bottom)
+        if (spaceFloat != null) {
+            drawRcsPlumes(drawScope, sbx, sby, sbr, spaceFloat)
+        }
+
+        // Orbiting satellites in front of bubble (Z >= 0)
+        if (spaceFloat != null) {
+            drawOrbitingSatellites(drawScope, sbx, sby, sbr, spaceFloat, isFront = true)
+        }
+    }
+
+    private fun drawOrbitingSatellites(
+        drawScope: DrawScope,
+        sbx: Float,
+        sby: Float,
+        sbr: Float,
+        spaceFloat: com.arcade.bubbledefense.domain.systems.SpaceFloatSystem,
+        isFront: Boolean
+    ) {
+        val satDist = sbr * 1.55f
+        val angles = floatArrayOf(spaceFloat.satAngle0, spaceFloat.satAngle1, spaceFloat.satAngle2)
+        for (i in 0 until 3) {
+            val a = angles[i]
+            val z = cos(a) * 0.5f
+            if ((isFront && z >= 0) || (!isFront && z < 0)) {
+                val px = sbx + cos(a) * satDist
+                val py = sby + sin(a) * (satDist * 0.40f)
+                val satR = (5f * (1f + z * 0.3f)).coerceAtLeast(2.5f)
+                drawScope.drawCircle(
+                    color = COLOR_CYAN.copy(alpha = if (isFront) 0.95f else 0.55f),
+                    radius = satR,
+                    center = Offset(px, py)
+                )
+                drawScope.drawCircle(
+                    color = COLOR_WHITE.copy(alpha = if (isFront) 0.90f else 0.40f),
+                    radius = satR * 0.45f,
+                    center = Offset(px, py)
+                )
+            }
+        }
+    }
+
+    private fun drawRcsPlumes(
+        drawScope: DrawScope,
+        sbx: Float,
+        sby: Float,
+        sbr: Float,
+        spaceFloat: com.arcade.bubbledefense.domain.systems.SpaceFloatSystem
+    ) {
+        // Left RCS micro-plume
+        if (spaceFloat.rcsLeft > 0.05f) {
+            val len = 18f * spaceFloat.rcsLeft
+            drawScope.drawLine(
+                color = COLOR_CYAN.copy(alpha = spaceFloat.rcsLeft * 0.8f),
+                start = Offset(sbx - sbr * 0.95f, sby),
+                end = Offset(sbx - sbr * 0.95f - len, sby),
+                strokeWidth = 3f,
+                cap = StrokeCap.Round
+            )
+        }
+        // Right RCS micro-plume
+        if (spaceFloat.rcsRight > 0.05f) {
+            val len = 18f * spaceFloat.rcsRight
+            drawScope.drawLine(
+                color = COLOR_CYAN.copy(alpha = spaceFloat.rcsRight * 0.8f),
+                start = Offset(sbx + sbr * 0.95f, sby),
+                end = Offset(sbx + sbr * 0.95f + len, sby),
+                strokeWidth = 3f,
+                cap = StrokeCap.Round
+            )
+        }
+        // Bottom RCS micro-plume
+        if (spaceFloat.rcsBottom > 0.05f) {
+            val len = 24f * spaceFloat.rcsBottom
+            drawScope.drawLine(
+                color = COLOR_WHITE.copy(alpha = spaceFloat.rcsBottom * 0.9f),
+                start = Offset(sbx, sby + sbr * 0.95f),
+                end = Offset(sbx, sby + sbr * 0.95f + len),
+                strokeWidth = 4f,
+                cap = StrokeCap.Round
+            )
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1114,7 +1131,8 @@ class ProceduralRenderer {
     private fun drawObstacles(
         drawScope: DrawScope,
         world: GameWorld,
-        scaler: ViewportScaler
+        scaler: ViewportScaler,
+        enemyAISystem: com.arcade.bubbledefense.domain.systems.EnemyAISystem? = null
     ) {
         val count = world.obstacles.count
         if (count == 0) return
@@ -1168,6 +1186,21 @@ class ProceduralRenderer {
                 GameConfig.TYPE_PRISM_CARRIER -> drawPrismCarrier3D(drawScope, ox, oy, r, angle, depthScale, voidFogAlpha, world.gameTime)
                 GameConfig.TYPE_ARMOR_CRYSTAL -> drawArmorCrystal3D(drawScope, ox, oy, r, depthScale, voidFogAlpha, world.gameTime, wy)
                 GameConfig.TYPE_METEORITE -> drawMeteorite3D(drawScope, ox, oy, r, vx, vy, depthScale, isParried, voidFogAlpha, world.gameTime)
+                GameConfig.TYPE_VOID_STALKER -> {
+                    val charge = enemyAISystem?.aiCharge?.getOrNull(i) ?: 0f
+                    drawVoidStalker3D(drawScope, ox, oy, r, vx, vy, depthScale, isParried, voidFogAlpha, charge)
+                }
+                GameConfig.TYPE_SNIPER_PLATFORM -> {
+                    val charge = enemyAISystem?.aiCharge?.getOrNull(i) ?: 0f
+                    val tx = enemyAISystem?.aiTargetX?.getOrNull(i) ?: 500f
+                    val ty = enemyAISystem?.aiTargetY?.getOrNull(i) ?: 1476f
+                    val stx = scaler.worldLaneToScreenX(tx, ty)
+                    val sty = scaler.worldLaneToScreenY(ty)
+                    drawSniperPlatform3D(drawScope, ox, oy, r, depthScale, isParried, voidFogAlpha, charge, stx, sty)
+                }
+                GameConfig.TYPE_GRAVITY_WEAVER -> drawGravityWeaver3D(drawScope, ox, oy, r, angle, depthScale, voidFogAlpha, world.gameTime)
+                GameConfig.TYPE_SWARMER -> drawSwarmer3D(drawScope, ox, oy, r, vx, vy, depthScale, voidFogAlpha)
+                GameConfig.TYPE_VOID_DEBRIS -> drawVoidDebris3D(drawScope, ox, oy, r, angle, depthScale, voidFogAlpha)
             }
         }
     }
@@ -1567,6 +1600,311 @@ class ProceduralRenderer {
             color = COLOR_WHITE.copy(alpha = 0.95f * voidFogAlpha),
             radius = r * 0.18f,
             center = center
+        )
+    }
+
+    private fun drawVoidStalker3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        vx: Float,
+        vy: Float,
+        depthScale: Float,
+        isParried: Boolean,
+        voidFogAlpha: Float,
+        charge: Float
+    ) {
+        val speedSq = vx * vx + vy * vy
+        val heading = if (speedSq > 1f) atan2(vy, vx) else (PI.toFloat() * 0.5f)
+        val baseColor = if (isParried) COLOR_CYAN else Color(0xFFFF2A55)
+        val center = Offset(cx, cy)
+
+        // 1. Telegraph Lunge Laser Ray (when charging up lunge)
+        if (charge > 0.05f) {
+            val lungeLen = 320f * depthScale * charge
+            val rayEnd = Offset(cx + cos(heading) * lungeLen, cy + sin(heading) * lungeLen)
+            drawScope.drawLine(
+                color = Color(0xFFFF3300).copy(alpha = (0.35f + 0.55f * charge) * voidFogAlpha),
+                start = center,
+                end = rayEnd,
+                strokeWidth = (2f + 3f * charge) * depthScale
+            )
+            // Lunge target reticle ring
+            drawScope.drawCircle(
+                color = Color(0xFFFF3300).copy(alpha = charge * voidFogAlpha),
+                radius = 14f * depthScale * (1f - charge * 0.3f),
+                center = rayEnd,
+                style = strokeRing
+            )
+        }
+
+        // 2. Forward-Swept Chevron Hunter Chassis
+        val noseLen = r * 2.4f
+        val wingSpan = r * 2.0f
+        val rearIndent = r * 0.5f
+
+        val noseX = cx + cos(heading) * noseLen
+        val noseY = cy + sin(heading) * noseLen
+
+        val leftWingAngle = heading + 2.45f
+        val rightWingAngle = heading - 2.45f
+        val leftX = cx + cos(leftWingAngle) * wingSpan
+        val leftY = cy + sin(leftWingAngle) * wingSpan
+        val rightX = cx + cos(rightWingAngle) * wingSpan
+        val rightY = cy + sin(rightWingAngle) * wingSpan
+
+        val tailX = cx - cos(heading) * rearIndent
+        val tailY = cy - sin(heading) * rearIndent
+
+        obstaclePath.rewind()
+        obstaclePath.moveTo(noseX, noseY)
+        obstaclePath.lineTo(leftX, leftY)
+        obstaclePath.lineTo(tailX, tailY)
+        obstaclePath.lineTo(rightX, rightY)
+        obstaclePath.close()
+
+        // Pass A: Outer sinister glow
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.28f * voidFogAlpha), style = strokeGlowMid)
+        // Pass B: Obsidian composite fuselage
+        drawScope.drawPath(obstaclePath, color = Color(0xFF0F0818).copy(alpha = 0.92f * voidFogAlpha), style = Fill)
+        // Pass C: Hot laser edge trim
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = voidFogAlpha), style = strokeCoreThin)
+
+        // 3. Central Threat Optical Sensor Node
+        drawScope.drawCircle(
+            color = COLOR_WHITE.copy(alpha = 0.95f * voidFogAlpha),
+            radius = r * 0.28f,
+            center = Offset(cx + cos(heading) * (r * 0.4f), cy + sin(heading) * (r * 0.4f))
+        )
+    }
+
+    private fun drawSniperPlatform3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        depthScale: Float,
+        isParried: Boolean,
+        voidFogAlpha: Float,
+        charge: Float,
+        stx: Float,
+        sty: Float
+    ) {
+        val center = Offset(cx, cy)
+        val baseColor = if (isParried) COLOR_CYAN else Color(0xFFFF1144)
+
+        // Heading towards target
+        val dx = stx - cx
+        val dy = sty - cy
+        val targetDist = sqrt(dx * dx + dy * dy)
+        val aimAngle = if (targetDist > 1f) atan2(dy, dx) else (PI.toFloat() * 0.5f)
+
+        // 1. Contracting Red Laser Targeting Sight Line
+        if (charge > 0f) {
+            val laserAlpha = (0.20f + 0.75f * charge).coerceIn(0f, 1f) * voidFogAlpha
+            drawScope.drawLine(
+                color = Color(0xFFFF0033).copy(alpha = laserAlpha),
+                start = center,
+                end = Offset(stx, sty),
+                strokeWidth = (1.5f + 4f * charge * charge) * depthScale
+            )
+            // Hot focus point at target
+            drawScope.drawCircle(
+                color = COLOR_WHITE.copy(alpha = laserAlpha),
+                radius = (8f - 4f * charge).coerceAtLeast(3f) * depthScale,
+                center = Offset(stx, sty)
+            )
+        }
+
+        // 2. Stationary Hexagonal Bastion Platform
+        val sides = 6
+        val step = (2.0 * PI / sides).toFloat()
+        obstaclePath.rewind()
+        for (i in 0 until sides) {
+            val a = i * step + (PI.toFloat() / 6f)
+            val px = cx + cos(a) * r
+            val py = cy + sin(a) * (r * 0.85f)
+            if (i == 0) obstaclePath.moveTo(px, py) else obstaclePath.lineTo(px, py)
+        }
+        obstaclePath.close()
+
+        drawScope.drawPath(obstaclePath, color = Color(0xFF0C0A14).copy(alpha = 0.90f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = voidFogAlpha), style = strokeShieldMid)
+
+        // 3. Heavy Railgun Barrel
+        val barrelLen = r * 1.9f
+        val barrelTipX = cx + cos(aimAngle) * barrelLen
+        val barrelTipY = cy + sin(aimAngle) * barrelLen
+        drawScope.drawLine(
+            color = COLOR_WHITE.copy(alpha = voidFogAlpha),
+            start = center,
+            end = Offset(barrelTipX, barrelTipY),
+            strokeWidth = 4f * depthScale,
+            cap = StrokeCap.Square
+        )
+        // Muzzle coil glow
+        drawScope.drawCircle(
+            color = baseColor.copy(alpha = (0.4f + 0.6f * charge) * voidFogAlpha),
+            radius = 5f * depthScale,
+            center = Offset(barrelTipX, barrelTipY)
+        )
+    }
+
+    private fun drawGravityWeaver3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        angle: Float,
+        depthScale: Float,
+        voidFogAlpha: Float,
+        time: Float
+    ) {
+        val center = Offset(cx, cy)
+        val violetColor = Color(0xFF9900FF)
+        val magentaColor = Color(0xFFFF0088)
+
+        // 1. Gravitational Distortion Pulsing Waves (Perspective Rings expanding outward)
+        for (ring in 0 until 3) {
+            val phase = (time * 1.4f + ring * 0.333f) % 1.0f
+            val ringR = r * (1.0f + phase * 2.2f)
+            val ringAlpha = ((1.0f - phase) * 0.45f * voidFogAlpha).coerceIn(0f, 1f)
+            drawScope.drawOval(
+                color = violetColor.copy(alpha = ringAlpha),
+                topLeft = Offset(cx - ringR, cy - ringR * 0.55f),
+                size = Size(ringR * 2f, ringR * 1.1f),
+                style = strokeRing
+            )
+        }
+
+        // 2. Gravitational Singularity Core (Pitch black void sphere)
+        drawScope.drawCircle(
+            color = Color(0xFF020008),
+            radius = r * 0.95f,
+            center = center
+        )
+
+        // 3. Rotating Violet Crystalline Octahedron
+        val rot = angle + time * 2.2f
+        val cosR = cos(rot)
+        val sinR = sin(rot)
+        val dR = r * 1.35f
+        val topX = cx - sinR * dR
+        val topY = cy + cosR * (dR * 0.75f)
+        val botX = cx + sinR * dR
+        val botY = cy - cosR * (dR * 0.75f)
+        val rightX = cx + cosR * (dR * 0.85f)
+        val rightY = cy + sinR * (dR * 0.55f)
+        val leftX = cx - cosR * (dR * 0.85f)
+        val leftY = cy - sinR * (dR * 0.55f)
+
+        obstaclePath.rewind()
+        obstaclePath.moveTo(topX, topY)
+        obstaclePath.lineTo(rightX, rightY)
+        obstaclePath.lineTo(botX, botY)
+        obstaclePath.lineTo(leftX, leftY)
+        obstaclePath.close()
+
+        drawScope.drawPath(obstaclePath, color = violetColor.copy(alpha = 0.30f * voidFogAlpha), style = strokeGlowMid)
+        drawScope.drawPath(obstaclePath, color = magentaColor.copy(alpha = 0.85f * voidFogAlpha), style = strokeCoreThin)
+
+        // 4. White Hyper-Dense Singularity Center
+        val corePulse = 0.6f + 0.4f * sin(time * 12f)
+        drawScope.drawCircle(
+            color = COLOR_WHITE.copy(alpha = corePulse * voidFogAlpha),
+            radius = r * 0.28f,
+            center = center
+        )
+    }
+
+    private fun drawSwarmer3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        vx: Float,
+        vy: Float,
+        depthScale: Float,
+        voidFogAlpha: Float
+    ) {
+        val speedSq = vx * vx + vy * vy
+        val heading = if (speedSq > 1f) atan2(vy, vx) else (PI.toFloat() * 0.5f)
+        val venomColor = Color(0xFF00FF66)
+        val center = Offset(cx, cy)
+
+        // 1. Undulating Sinusoidal Bio-Tail
+        val tailLen = r * 2.8f
+        val tailEndX = cx - cos(heading) * tailLen
+        val tailEndY = cy - sin(heading) * tailLen
+        drawScope.drawLine(
+            color = venomColor.copy(alpha = 0.55f * voidFogAlpha),
+            start = center,
+            end = Offset(tailEndX, tailEndY),
+            strokeWidth = (3.5f * depthScale).coerceAtLeast(1.5f),
+            cap = StrokeCap.Round
+        )
+
+        // 2. Tear-Drop Bio-Leech Pod Body
+        val tipX = cx + cos(heading) * (r * 1.5f)
+        val tipY = cy + sin(heading) * (r * 1.5f)
+        val sideAngle = heading + PI.toFloat() * 0.65f
+        val sideX = cx + cos(sideAngle) * (r * 0.85f)
+        val sideY = cy + sin(sideAngle) * (r * 0.85f)
+        val otherSideAngle = heading - PI.toFloat() * 0.65f
+        val oSideX = cx + cos(otherSideAngle) * (r * 0.85f)
+        val oSideY = cy + sin(otherSideAngle) * (r * 0.85f)
+
+        obstaclePath.rewind()
+        obstaclePath.moveTo(tipX, tipY)
+        obstaclePath.lineTo(sideX, sideY)
+        obstaclePath.lineTo(cx - cos(heading) * (r * 0.5f), cy - sin(heading) * (r * 0.5f))
+        obstaclePath.lineTo(oSideX, oSideY)
+        obstaclePath.close()
+
+        drawScope.drawPath(obstaclePath, color = venomColor.copy(alpha = 0.40f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(obstaclePath, color = COLOR_WHITE.copy(alpha = voidFogAlpha), style = strokeWhiteCore)
+
+        // 3. Twin Glowing Emerald Optic Nodes
+        drawScope.drawCircle(
+            color = venomColor.copy(alpha = 0.95f * voidFogAlpha),
+            radius = r * 0.25f,
+            center = Offset(cx + cos(heading) * (r * 0.5f), cy + sin(heading) * (r * 0.5f))
+        )
+    }
+
+    private fun drawVoidDebris3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        angle: Float,
+        depthScale: Float,
+        voidFogAlpha: Float
+    ) {
+        val sides = 7
+        val step = (2.0 * PI / sides).toFloat()
+
+        obstaclePath.rewind()
+        for (i in 0 until sides) {
+            val a = angle + i * step
+            // Procedural rocky facet perturbation
+            val jitter = 0.82f + 0.28f * sin(a * 2.3f + i)
+            val px = cx + cos(a) * (r * jitter)
+            val py = cy + sin(a) * (r * jitter * 0.85f)
+            if (i == 0) obstaclePath.moveTo(px, py) else obstaclePath.lineTo(px, py)
+        }
+        obstaclePath.close()
+
+        // Shaded 3D Debris Facet
+        drawScope.drawPath(obstaclePath, color = Color(0xFF141924).copy(alpha = 0.90f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(obstaclePath, color = Color(0xFF4A6B82).copy(alpha = 0.70f * voidFogAlpha), style = strokeCoreThin)
+
+        // Specular ridge highlight along upper rim
+        drawScope.drawCircle(
+            color = COLOR_CYAN.copy(alpha = 0.35f * voidFogAlpha),
+            radius = r * 0.20f,
+            center = Offset(cx - r * 0.3f, cy - r * 0.3f)
         )
     }
 

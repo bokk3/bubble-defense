@@ -15,7 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.arcade.bubbledefense.domain.economy.MockEconomyService
+import com.arcade.bubbledefense.domain.games.LocalOfflineGamesGateway
 import com.arcade.bubbledefense.ui.GameScreen
+import com.arcade.bubbledefense.ui.menu.MainMenuScreen
 import com.arcade.bubbledefense.ui.splash.CoreLoreIntroAnimation
 import com.arcade.bubbledefense.ui.splash.TachyonVerticalSplash
 
@@ -23,12 +26,13 @@ import com.arcade.bubbledefense.ui.splash.TachyonVerticalSplash
  * Main activity for Bubble Defense.
  *
  * Configures edge-to-edge immersive display, hides system navigation bars with transient swipe,
- * keeps the display awake during gameplay, and hosts the Compose [GameScreen].
+ * keeps the display awake during gameplay, and hosts the Compose navigation pipeline.
  *
  * Sequential Startup Pipeline:
  * - Stage 0: Tachyon Studio Hero Splash Screen (0.0s - 4.15s, tap-to-skip)
  * - Stage 1: 2-Second Cinematic Core Lore Intro Sequence (0.0s - 2.0s, tap-to-skip)
- * - Stage 2: Direct 120Hz Live Gameplay (all intro overlays unmounted with 0ms hitch)
+ * - Stage 2: Modern Cyberpunk Command Hub / Main Menu (Live 3D float, Sortie, Arsenal, Bounties, Scoreboards)
+ * - Stage 3: Direct 120Hz Combat Gameplay (all overlays unmounted with 0ms hitch)
  */
 class MainActivity : ComponentActivity() {
 
@@ -46,12 +50,32 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContent {
-            // Sequential Startup: 0 = Studio Splash, 1 = Core Lore, 2 = Live Game
+            // Sequential Startup: 0 = Studio Splash, 1 = Core Lore, 2 = Main Menu, 3 = Active Combat
             var startupStage by remember { mutableIntStateOf(0) }
+            val economyGateway = remember { MockEconomyService() }
+            val gamesGateway = remember { LocalOfflineGamesGateway() }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                // GameScreen is mounted underneath so engine, pools, and shaders initialize concurrently
-                GameScreen()
+                if (startupStage == 3) {
+                    GameScreen(
+                        economyGateway = economyGateway,
+                        gamesGateway = gamesGateway,
+                        onExitToHub = {
+                            startupStage = 2
+                        }
+                    )
+                } else if (startupStage == 2) {
+                    MainMenuScreen(
+                        onLaunchMission = { _ ->
+                            startupStage = 3
+                        },
+                        onReplayIntro = {
+                            startupStage = 1
+                        },
+                        economyGateway = economyGateway,
+                        gamesGateway = gamesGateway
+                    )
+                }
 
                 // Stage 0: Tachyon Studio Hero Splash
                 if (startupStage == 0) {

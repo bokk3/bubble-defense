@@ -20,12 +20,21 @@ import kotlin.math.sqrt
 // -------------------------------------------------------------------------------------------------
 
 /**
+ * Listener interface invoked when an active obstacle is removed via swap-remove.
+ */
+fun interface ObstacleSwapRemoveListener {
+    fun onSwapRemove(index: Int, last: Int)
+}
+
+/**
  * Pre-allocated Structure-of-Arrays pool for active obstacles and falling hazards.
  * Capacity is strictly fixed at [GameConfig.OBSTACLE_POOL_CAPACITY] (128).
  */
 class ObstaclePool(val capacity: Int = GameConfig.OBSTACLE_POOL_CAPACITY) {
     var count: Int = 0
         private set
+
+    var onSwapRemoveListener: ObstacleSwapRemoveListener? = null
 
     private var nextEntityId: Int = 1
 
@@ -116,6 +125,7 @@ class ObstaclePool(val capacity: Int = GameConfig.OBSTACLE_POOL_CAPACITY) {
             id[index] = id[last]
             seed[index] = seed[last]
         }
+        onSwapRemoveListener?.onSwapRemove(index, last)
     }
 
     /** Resets the pool count to 0 in O(1) time without garbage generation. */

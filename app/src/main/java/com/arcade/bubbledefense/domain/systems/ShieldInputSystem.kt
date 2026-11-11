@@ -47,6 +47,18 @@ class ShieldInputSystem(private val world: GameWorld) {
 
     private var nextStrokeId: Int = 1
 
+    /** Whether at least one pointer is currently active / touching down. */
+    val isPointerActive: Boolean
+        get() = world.activePointerCount > 0
+
+    /** Last horizontal swipe delta in world units (positive = right). */
+    var lastDeltaX: Float = 0f
+        private set
+
+    /** Last vertical swipe delta in world units (positive = down). */
+    var lastDeltaY: Float = 0f
+        private set
+
     /**
      * Advances the input system and shield segment lifecycles by [dt] seconds.
      * Consumes all queued touch events from the world input ring buffer.
@@ -69,6 +81,8 @@ class ShieldInputSystem(private val world: GameWorld) {
         // 2. Ink Regeneration Logic:
         // Ink only regenerates when NO fingers are actively drawing and the cooldown timer has elapsed.
         if (world.activePointerCount <= 0) {
+            lastDeltaX *= 0.85f
+            lastDeltaY *= 0.85f
             if (world.inkCooldownTimer > 0f) {
                 world.inkCooldownTimer -= dt
                 if (world.inkCooldownTimer < 0f) {
@@ -240,6 +254,9 @@ class ShieldInputSystem(private val world: GameWorld) {
 
         // Minimum distance decimation: skip micro-jitter below threshold
         if (distSq < MIN_SEGMENT_LEN_SQ) return
+
+        lastDeltaX = dx
+        lastDeltaY = dy
 
         val dist = sqrt(distSq)
         val elapsedNanos = timestampNanos - pointerLastNanos[slot]

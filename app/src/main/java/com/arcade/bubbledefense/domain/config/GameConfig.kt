@@ -225,6 +225,52 @@ object GameConfig {
     const val TYPE_PRISM_CARRIER: Byte = 5
     const val TYPE_ARMOR_CRYSTAL: Byte = 6
     const val TYPE_METEORITE: Byte = 7
+    const val TYPE_VOID_STALKER: Byte = 8
+    const val TYPE_SNIPER_PLATFORM: Byte = 9
+    const val TYPE_GRAVITY_WEAVER: Byte = 10
+    const val TYPE_SWARMER: Byte = 11
+    const val TYPE_VOID_DEBRIS: Byte = 12
+
+    // Void Stalker specs (Flanking & Lunging Predator Drone)
+    const val STALKER_RADIUS: Float = 28f
+    const val STALKER_MASS: Float = 1.2f
+    const val STALKER_RESTITUTION: Float = 0.70f
+    const val STALKER_LUNGE_SPEED: Float = 680f
+    const val STALKER_THREAT_COST: Float = 3.5f
+    const val STALKER_UNLOCK_TIME: Float = 40f
+
+    // Sniper Platform specs (Long-Range Railgun Battery)
+    const val SNIPER_RADIUS: Float = 32f
+    const val SNIPER_MASS: Float = 2.0f
+    const val SNIPER_RESTITUTION: Float = 0.50f
+    const val SNIPER_CHARGE_TIME: Float = 1.20f
+    const val SNIPER_SPIKE_SPEED: Float = 1100f
+    const val SNIPER_THREAT_COST: Float = 4.0f
+    const val SNIPER_UNLOCK_TIME: Float = 60f
+
+    // Gravity Weaver specs (Singularity Field Disruptor)
+    const val WEAVER_RADIUS: Float = 34f
+    const val WEAVER_MASS: Float = 3.0f
+    const val WEAVER_RESTITUTION: Float = 0.40f
+    const val WEAVER_GRAVITY_RANGE: Float = 260f
+    const val WEAVER_GRAVITY_STRENGTH: Float = 220f
+    const val WEAVER_THREAT_COST: Float = 3.0f
+    const val WEAVER_UNLOCK_TIME: Float = 50f
+
+    // Swarmer specs (Flocking Void Leeches)
+    const val SWARMER_RADIUS: Float = 18f
+    const val SWARMER_MASS: Float = 0.4f
+    const val SWARMER_RESTITUTION: Float = 0.85f
+    const val SWARMER_SPEED: Float = 380f
+    const val SWARMER_THREAT_COST: Float = 1.8f
+    const val SWARMER_UNLOCK_TIME: Float = 25f
+
+    // Passing Void Debris specs (Tumbling Deep Space Asteroids)
+    const val DEBRIS_RADIUS: Float = 24f
+    const val DEBRIS_MASS: Float = 1.5f
+    const val DEBRIS_RESTITUTION: Float = 0.60f
+    const val DEBRIS_THREAT_COST: Float = 1.0f
+    const val DEBRIS_UNLOCK_TIME: Float = 30f
 
     const val FLAG_HAS_SPLIT: Int = 1 shl 0
     const val FLAG_CCD: Int = 1 shl 1

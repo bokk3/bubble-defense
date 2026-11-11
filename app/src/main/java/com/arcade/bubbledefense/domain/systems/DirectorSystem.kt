@@ -44,6 +44,9 @@ class DirectorSystem(
     var solarFlareCooldown: Float = 35.0f
     var meteoriteSpawnTimer: Float = 0f
 
+    /** Optional reference to [EnemyAISystem] for predatory state machine registration. */
+    var enemyAISystem: EnemyAISystem? = null
+
     /** Advances PRNG state and returns a pseudo-random integer. */
     fun nextInt(): Int {
         var x = rngState
@@ -327,32 +330,64 @@ class DirectorSystem(
         val canCrusher = t >= GameConfig.CRUSHER_UNLOCK_TIME && budget >= GameConfig.CRUSHER_THREAT_COST
         val canSplitter = t >= GameConfig.SPLITTER_UNLOCK_TIME && budget >= GameConfig.SPLITTER_THREAT_COST
         val canNeedle = t >= GameConfig.NEEDLE_UNLOCK_TIME && budget >= GameConfig.NEEDLE_THREAT_COST
+        val canStalker = t >= GameConfig.STALKER_UNLOCK_TIME && budget >= GameConfig.STALKER_THREAT_COST
+        val canSniper = t >= GameConfig.SNIPER_UNLOCK_TIME && budget >= GameConfig.SNIPER_THREAT_COST
+        val canWeaver = t >= GameConfig.WEAVER_UNLOCK_TIME && budget >= GameConfig.WEAVER_THREAT_COST
+        val canSwarmer = t >= GameConfig.SWARMER_UNLOCK_TIME && budget >= GameConfig.SWARMER_THREAT_COST
+        val canDebris = t >= GameConfig.DEBRIS_UNLOCK_TIME && budget >= GameConfig.DEBRIS_THREAT_COST
         val canDrifter = budget >= GameConfig.DRIFTER_THREAT_COST
 
-        if (!canDrifter) return false
+        if (!canDrifter && !canDebris) return false
 
         // Compute selection weights
-        val weightCrusher = if (canCrusher) 20 else 0
-        val weightSplitter = if (canSplitter) 30 else 0
-        val weightNeedle = if (canNeedle) 40 else 0
-        val weightDrifter = 50
+        val weightStalker = if (canStalker) 18 else 0
+        val weightSniper = if (canSniper) 15 else 0
+        val weightWeaver = if (canWeaver) 14 else 0
+        val weightSwarmer = if (canSwarmer) 20 else 0
+        val weightDebris = if (canDebris) 18 else 0
+        val weightCrusher = if (canCrusher) 15 else 0
+        val weightSplitter = if (canSplitter) 22 else 0
+        val weightNeedle = if (canNeedle) 28 else 0
+        val weightDrifter = 35
 
-        val totalWeight = weightCrusher + weightSplitter + weightNeedle + weightDrifter
+        val totalWeight = weightStalker + weightSniper + weightWeaver + weightSwarmer +
+            weightDebris + weightCrusher + weightSplitter + weightNeedle + weightDrifter
         val pick = (nextFloat() * totalWeight).toInt()
 
         val selectedType: Byte
         val cost: Float
 
+        var acc = 0
         when {
-            pick < weightCrusher -> {
+            pick < acc + weightStalker -> {
+                selectedType = GameConfig.TYPE_VOID_STALKER
+                cost = GameConfig.STALKER_THREAT_COST
+            }
+            pick < run { acc += weightStalker; acc + weightSniper } -> {
+                selectedType = GameConfig.TYPE_SNIPER_PLATFORM
+                cost = GameConfig.SNIPER_THREAT_COST
+            }
+            pick < run { acc += weightSniper; acc + weightWeaver } -> {
+                selectedType = GameConfig.TYPE_GRAVITY_WEAVER
+                cost = GameConfig.WEAVER_THREAT_COST
+            }
+            pick < run { acc += weightWeaver; acc + weightSwarmer } -> {
+                selectedType = GameConfig.TYPE_SWARMER
+                cost = GameConfig.SWARMER_THREAT_COST
+            }
+            pick < run { acc += weightSwarmer; acc + weightDebris } -> {
+                selectedType = GameConfig.TYPE_VOID_DEBRIS
+                cost = GameConfig.DEBRIS_THREAT_COST
+            }
+            pick < run { acc += weightDebris; acc + weightCrusher } -> {
                 selectedType = GameConfig.TYPE_CRUSHER
                 cost = GameConfig.CRUSHER_THREAT_COST
             }
-            pick < weightCrusher + weightSplitter -> {
+            pick < run { acc += weightCrusher; acc + weightSplitter } -> {
                 selectedType = GameConfig.TYPE_SPLITTER
                 cost = GameConfig.SPLITTER_THREAT_COST
             }
-            pick < weightCrusher + weightSplitter + weightNeedle -> {
+            pick < run { acc += weightSplitter; acc + weightNeedle } -> {
                 selectedType = GameConfig.TYPE_NEEDLE
                 cost = GameConfig.NEEDLE_THREAT_COST
             }
@@ -368,11 +403,11 @@ class DirectorSystem(
     }
 
     private fun spawnArchetype(type: Byte) {
-        val spawnX = nextFloat(100f, 900f)
+        val spawnX = nextFloat(50f, 950f)
         val spawnY = GameConfig.SPAWN_LINE_Y
 
         // Target point in lower half (around bubble defense zone)
-        val targetX = nextFloat(300f, 700f)
+        val targetX = nextFloat(250f, 750f)
         val targetY = nextFloat(1200f, 1600f)
 
         val dx = targetX - spawnX
@@ -430,6 +465,82 @@ class DirectorSystem(
                     colRestitution = GameConfig.CRUSHER_RESTITUTION,
                     obstacleType = GameConfig.TYPE_CRUSHER,
                     angularVelocity = nextFloat(-1f, 1f)
+                )
+            }
+            GameConfig.TYPE_VOID_STALKER -> {
+                // Spawns from wide flank in deep space
+                val flankLeft = nextFloat() < 0.5f
+                val stalkerX = if (flankLeft) nextFloat(-40f, 50f) else nextFloat(950f, 1040f)
+                val stalkerY = nextFloat(150f, 550f)
+                val idx = world.obstacles.spawn(
+                    posX = stalkerX, posY = stalkerY,
+                    velX = if (flankLeft) 180f else -180f, velY = 120f,
+                    colRadius = GameConfig.STALKER_RADIUS,
+                    mass = GameConfig.STALKER_MASS,
+                    colRestitution = GameConfig.STALKER_RESTITUTION,
+                    obstacleType = GameConfig.TYPE_VOID_STALKER
+                )
+                if (idx >= 0) {
+                    enemyAISystem?.onSpawn(idx, type, targetX, targetY)
+                }
+                addTelegraph(stalkerX.coerceIn(60f, 940f), type)
+            }
+            GameConfig.TYPE_SNIPER_PLATFORM -> {
+                val idx = world.obstacles.spawn(
+                    posX = spawnX, posY = spawnY,
+                    velX = nextFloat(-20f, 20f), velY = 60f,
+                    colRadius = GameConfig.SNIPER_RADIUS,
+                    mass = GameConfig.SNIPER_MASS,
+                    colRestitution = GameConfig.SNIPER_RESTITUTION,
+                    obstacleType = GameConfig.TYPE_SNIPER_PLATFORM
+                )
+                if (idx >= 0) {
+                    enemyAISystem?.onSpawn(idx, type, 500f, 1476f)
+                }
+                addTelegraph(spawnX, type)
+            }
+            GameConfig.TYPE_GRAVITY_WEAVER -> {
+                val idx = world.obstacles.spawn(
+                    posX = spawnX, posY = spawnY,
+                    velX = dirX * 90f, velY = dirY * 90f,
+                    colRadius = GameConfig.WEAVER_RADIUS,
+                    mass = GameConfig.WEAVER_MASS,
+                    colRestitution = GameConfig.WEAVER_RESTITUTION,
+                    obstacleType = GameConfig.TYPE_GRAVITY_WEAVER,
+                    angularVelocity = nextFloat(-1.2f, 1.2f)
+                )
+                if (idx >= 0) {
+                    enemyAISystem?.onSpawn(idx, type, targetX, targetY)
+                }
+                addTelegraph(spawnX, type)
+            }
+            GameConfig.TYPE_SWARMER -> {
+                // Spawns in a pack of 3
+                for (s in 0 until 3) {
+                    val offsetX = (s - 1) * 36f
+                    val idx = world.obstacles.spawn(
+                        posX = (spawnX + offsetX).coerceIn(40f, 960f), posY = spawnY - s * 24f,
+                        velX = dirX * GameConfig.SWARMER_SPEED, velY = dirY * GameConfig.SWARMER_SPEED,
+                        colRadius = GameConfig.SWARMER_RADIUS,
+                        mass = GameConfig.SWARMER_MASS,
+                        colRestitution = GameConfig.SWARMER_RESTITUTION,
+                        obstacleType = GameConfig.TYPE_SWARMER
+                    )
+                    if (idx >= 0) {
+                        enemyAISystem?.onSpawn(idx, type, targetX, targetY)
+                    }
+                }
+                addTelegraph(spawnX, type)
+            }
+            GameConfig.TYPE_VOID_DEBRIS -> {
+                world.obstacles.spawn(
+                    posX = spawnX, posY = spawnY,
+                    velX = nextFloat(-35f, 35f), velY = nextFloat(180f, 320f),
+                    colRadius = GameConfig.DEBRIS_RADIUS,
+                    mass = GameConfig.DEBRIS_MASS,
+                    colRestitution = GameConfig.DEBRIS_RESTITUTION,
+                    obstacleType = GameConfig.TYPE_VOID_DEBRIS,
+                    angularVelocity = nextFloat(-4f, 4f)
                 )
             }
             GameConfig.TYPE_PRISM_CARRIER -> {

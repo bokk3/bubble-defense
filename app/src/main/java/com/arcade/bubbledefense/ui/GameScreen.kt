@@ -83,7 +83,9 @@ import kotlin.math.min
 fun GameScreen(
     modifier: Modifier = Modifier,
     initialSeed: Int = 1337,
-    economyGateway: EconomyGateway = remember { MockEconomyService() }
+    economyGateway: EconomyGateway = remember { MockEconomyService() },
+    gamesGateway: com.arcade.bubbledefense.domain.games.AuthAndGamesGateway? = null,
+    onExitToHub: (() -> Unit)? = null
 ) {
     // 1. Long-lived state instances (allocated once per screen lifecycle)
     val world = remember { GameWorld(initialSeed) }
@@ -94,6 +96,16 @@ fun GameScreen(
     val physicsSystem = remember { PhysicsSystem(world) }
     val directorSystem = remember { DirectorSystem(world, initialSeed) }
     val juiceSystem = remember { JuiceSystem(world) }
+    val spaceFloatSystem = remember { com.arcade.bubbledefense.domain.systems.SpaceFloatSystem() }
+    val enemyAISystem = remember { com.arcade.bubbledefense.domain.systems.EnemyAISystem(world) }
+
+    // Link director to enemy AI system
+    directorSystem.enemyAISystem = enemyAISystem
+
+    // Wire obstacle swap-remove listener to keep EnemyAISystem synchronized
+    world.obstacles.onSwapRemoveListener = com.arcade.bubbledefense.engine.pool.ObstacleSwapRemoveListener { removedIdx, swappedLastIdx ->
+        enemyAISystem.onSwapRemove(removedIdx, swappedLastIdx)
+    }
 
     // Procedural Software DSP Synthesizer & Algorithmic Sequencer
     val synth = remember { VoidSynthEngine() }
@@ -156,6 +168,12 @@ fun GameScreen(
                 droneSystem.step(dt)
                 juiceSystem.step(dt)
 
+                // Step space float system and enemy AI
+                spaceFloatSystem.update(dt, inputSystem.isPointerActive, inputSystem.lastDeltaX, inputSystem.lastDeltaY)
+                val curBubbleX = world.bubbleX + spaceFloatSystem.offsetX
+                val curBubbleY = world.bubbleY + spaceFloatSystem.offsetY
+                enemyAISystem.update(dt, curBubbleX, curBubbleY)
+
                 // Step procedural audio sequencer
                 if (world.parryTriggerCount > lastParryCount) {
                     lastParryCount = world.parryTriggerCount
@@ -179,6 +197,13 @@ fun GameScreen(
                         economyGateway.recordRunCompleted(
                             runDurationSeconds = world.gameTime,
                             score = world.score,
+                            parries = world.perfectParriesTotal,
+                            prismsEarned = world.prismsCollected
+                        )
+                        gamesGateway?.recordRunResult(
+                            score = world.score.toLong(),
+                            altitudeMeters = world.altitudeMeters,
+                            wave = world.currentWave,
                             parries = world.perfectParriesTotal,
                             prismsEarned = world.prismsCollected
                         )
@@ -326,7 +351,7 @@ fun GameScreen(
             }
 
             // Execute zero-allocation render pass
-            renderer.draw(this, world, scaler, renderAlpha, droneSystem)
+            renderer.draw(this, world, scaler, renderAlpha, droneSystem, spaceFloatSystem, enemyAISystem)
         }
 
         // 4. Procedural Audio Mute Toggle Button
@@ -636,41 +661,72 @@ fun GameScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Sub-300ms Instant Retry Button
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = ProceduralRenderer.COLOR_AMBER.copy(alpha = 0.20f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .clickable {
-                                economyGateway.showInterstitialIfAllowed {
-                                    world.reset()
-                                    inputSystem.reset()
-                                    directorSystem.reset()
-                                    droneSystem.reset()
-                                    sequencer.reset()
-                                    lastParryCount = 0
-                                    deathProcessed = false
-                                    currentCharges = world.storedPowerCharges
-                                    currentActivePower = world.activePowerType
-                                    currentUltCharge = world.ultCharge
-                                    currentDroneLevel = world.droneLevel
-                                    currentDroneOverdrive = 0f
-                                    currentPrisms = world.prismsCollected
-                                    world.state = GameState.PLAYING
-                                    currentGameState = GameState.PLAYING
-                                }
-                            }
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    // Actions: Retry and Hub
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "TAP TO RETRY",
-                            color = ProceduralRenderer.COLOR_AMBER,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            style = tnumStyle
-                        )
+                        // Sub-300ms Instant Retry Button
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = ProceduralRenderer.COLOR_AMBER.copy(alpha = 0.20f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    economyGateway.showInterstitialIfAllowed {
+                                        world.reset()
+                                        inputSystem.reset()
+                                        directorSystem.reset()
+                                        droneSystem.reset()
+                                        spaceFloatSystem.reset()
+                                        enemyAISystem.reset()
+                                        sequencer.reset()
+                                        lastParryCount = 0
+                                        deathProcessed = false
+                                        currentCharges = world.storedPowerCharges
+                                        currentActivePower = world.activePowerType
+                                        currentUltCharge = world.ultCharge
+                                        currentDroneLevel = world.droneLevel
+                                        currentDroneOverdrive = 0f
+                                        currentPrisms = world.prismsCollected
+                                        world.state = GameState.PLAYING
+                                        currentGameState = GameState.PLAYING
+                                    }
+                                }
+                                .padding(horizontal = 20.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = "RETRY",
+                                color = ProceduralRenderer.COLOR_AMBER,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                style = tnumStyle
+                            )
+                        }
+
+                        // Return to Base Hub Button
+                        if (onExitToHub != null) {
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        color = ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.20f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        onExitToHub()
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Text(
+                                    text = "BASE HUB",
+                                    color = ProceduralRenderer.COLOR_CYAN,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    style = tnumStyle
+                                )
+                            }
+                        }
                     }
                 }
             }

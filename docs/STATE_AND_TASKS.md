@@ -31,6 +31,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.9.0`** | **Phase 14** | Roguelike Tactical Protocols & Dynamic Mercy Flow | **RELEASED** | 2026-11-11 |
 | **`v1.10.0`** | **Phase 15** | Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate | **RELEASED** | 2026-11-11 |
 | **`v1.11.0`** | **Phase 16** | Cinematic Studio Splash & 2-Second Core Lore Intro Sequence | **RELEASED** | 2026-11-11 |
+| **`v1.12.0`** | **Phase 17** | 3D Deep Space Field, Zero-G Float, Predatory Enemies & Cyberpunk Command Hub | **RELEASED** | 2026-11-11 |
 
 ---
 
@@ -491,6 +492,48 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
+### Phase 17: 3D Deep Space Field, Zero-G Float, Predatory Enemies & Cyberpunk Command Hub (`v1.12.0`) — [COMPLETED]
+- [x] **T17.1 3D Deep Space Field Overhaul & Highway Deconstruction** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Remove highway road graphics: lane curbs, asphalt crosslines, centerline dashes, and roadside light pylons in `ProceduralRenderer.kt`.
+  - [x] Expand play volume from clamped $X \in [100, 900]$ to open cosmic space ($X \in [-350, 1350]$).
+  - [x] Implement multi-depth 3D cosmic asteroid and debris field:
+    - Foreground Passing Debris Layer ($Z < Z_{\text{bubble}}$): Pre-allocated cosmic dust, tumbling micro-asteroids, and frozen crystalline ice shards drifting past camera with speed streaks and depth blur.
+    - Midground Combat Layer ($Z \approx Z_{\text{bubble}}$): Tactical volume where player shields, sentinel drones, and enemies interact.
+    - Background Parallax Layer ($Z > Z_{\text{bubble}}$): Distant drifting mega-asteroids, derelict starship hulls, and swirling nebulae.
+- [x] **T17.2 Zero-G Player Model Float Physics & Gyroscopic Feedback** `[PHYS-AGENT]`, `[JUICE-AGENT]`
+  - [x] Implement `SpaceFloatSystem.kt`:
+    - 3-axis buoyancy micro-drift oscillation ($X_{\text{float}}, Y_{\text{float}}, Z_{\text{elevation}}$) using harmonic Lissajous equations.
+    - Gyroscopic reaction tilting: Bubble leans and tilts pitch/roll angles into player swipe gestures and recoils along collision normals.
+    - Directional RCS stabilization thruster micro-plumes firing opposite to drift to maintain equilibrium.
+    - Orbiting escort micro-probes: 3 crystalline satellites physically orbiting the bubble in inclined 3D ellipses with depth sorting (passing in front and behind the bubble).
+- [x] **T17.3 Predatory Mal-Intent Enemy AI Roster** `[PHYS-AGENT]`, `[ARCH-AGENT]`, `[kinetic-flow-architect]`
+  - [x] Implement `EnemyAISystem.kt` supporting 4 distinct predatory enemy classes in `EntityPools` and `DirectorSystem`:
+    - Void Stalker (Predator Drone): Spawns from wide flank angles in deep space, circles bubble at distance, locks telemetry, and lunges with high-speed thrust.
+    - Sniper Platform (Railgun Station): Anchors at upper horizon, casts contracting red laser sight line for $1.2\text{s}$ before firing piercing supersonic penetrator.
+    - Gravity Weaver (Singularity Mine): Deploys pulsing gravitational distortion vortex, curving trajectories of nearby debris and player shields.
+    - Kamikaze Swarmer (Void Leeches): Spawns in packs of 3–5, flocking rapidly toward bubble in erratic sinusoidal paths.
+    - Passing Void Debris: Tumbling faceted 3D asteroids drifting through zero-g.
+- [x] **T17.4 Modern Cyberpunk Command Hub (Main Menu)** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Implement `ui/menu/MainMenuScreen.kt`:
+    - Live 3D deep space backdrop with floating bubble responding to device tilt and touches.
+    - Glassmorphic command deck navigation:
+      - `[ SORTIE / DEPLOY ]`: Launch into combat with mission mode selection (Endless Deep Space, Solar Cataclysm, Singularity Breach).
+      - `[ ARSENAL ]`: Sentinel Drone Tech Tree, procedural Bubble & Shield Skin preview/customization, and Protocol Codex.
+      - `[ BOUNTIES ]`: Daily and weekly missions with Prism & XP rewards.
+      - `[ DATA LINK ]`: Pilot Profile with custom GamerTag, Pilot Rank, career stats, and local high score boards (All-Time, Weekly, Daily).
+      - `[ SYSTEM ]`: Audio volume controls (Synth Music, SFX, Void Drone), 120Hz/60Hz toggle, haptic feedback, replay lore intro.
+    - Screen transition: Smooth transition when pressing "DEPLOY SORTIE", and "BASE HUB" / "RETRY" buttons on Game Over.
+- [x] **T17.5 Local Offline Games & Profile Gateway** `[ARCH-AGENT]`, `[ECON-AGENT]`
+  - [x] Implement `domain/games/AuthAndGamesGateway.kt` (quarantined gateway) and `LocalOfflineGamesGateway.kt`:
+    - Tracks player profile, pilot rank (`CADET I` up to `SINGULARITY MASTER`), career stats (max altitude, total parries, accuracy, bosses defeated), and local high scores.
+    - 100% offline, zero external accounts or developer fees required.
+- [x] **T17.6 Unit Tests, Zero-Alloc Verification & Signed Release APK (v1.12.0)** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement `Phase17SpaceAndMenuTest.kt` verifying space float math, enemy AI state machines, local gateway persistence, and zero allocations.
+  - [x] Verify all unit tests passing with zero heap allocations on hot paths (209/209 tests passing).
+  - [x] Bump version to `v1.12.0` (`versionCode = 220`), assemble signed release APK, and publish to GitHub Releases.
+
+---
+
 ## 3. Known Edge Cases & Handling
 
 1. **Degenerate Segments (`lenSq <= 1e-8 wu²`):**
@@ -532,6 +575,41 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.12.0` (2026-11-11) — Phase 17: 3D Deep Space Field, Zero-G Float, Predatory Enemies & Cyberpunk Command Hub
+- **feat(space):** Unbounded 3D Cosmic Space Field Overhaul:
+  - Deconstructed and removed bounded highway road graphics (curbs, asphalt crosslines, centerline dashes, light pylons).
+  - Expanded play volume horizontally from clamped $X \in [100, 900]$ to open cosmic deep space $X \in [-350, 1350]$ with perspective letterboxing.
+  - Implemented multi-depth 3D cosmic asteroid and debris field: foreground cosmic dust, midground tactical combat volume, and background drifting mega-asteroids and nebulae.
+- **feat(float):** Zero-G Player Model Float Physics & Gyroscopic Reaction (`SpaceFloatSystem.kt`):
+  - 3-axis microgravity buoyancy oscillation ($X_{\text{float}}, Y_{\text{float}}, Z_{\text{elevation}}$) driven by multi-harmonic Lissajous equations.
+  - Dynamic gyroscopic reaction tilting: Defense target leans pitch/roll angles into active player swipe gestures and recoils along collision normals.
+  - Damped harmonic spring recovery (zeta = 0.85, omega = 12 rad/s) restoring bubble equilibrium.
+  - Directional RCS micro-thruster cold-gas plumes (left, right, bottom) firing automatically to counteract drift velocity.
+  - 3 Orbiting Escort Satellites physically circling the bubble in inclined 3D ellipses ($R \approx 1.55 R_0$) with depth sorting (passing in front and behind the bubble).
+- **feat(enemies):** Predatory Mal-Intent Enemy AI Roster (`EnemyAISystem.kt`):
+  - **Void Stalker (`TYPE_VOID_STALKER = 8`)**: Flanking predator drone emerging from outer deep space, orbiting bubble at distance, telegraphing amber lunge trajectory, and lunging at supersonic speed ($680\text{ wu/s}$).
+  - **Sniper Platform (`TYPE_SNIPER_PLATFORM = 9`)**: Stationary hexagonal bastion anchoring at upper horizon, casting contracting red laser sight line for $1.2\text{s}$, and firing piercing supersonic railgun penetrators ($1100\text{ wu/s}$).
+  - **Gravity Weaver (`TYPE_GRAVITY_WEAVER = 10`)**: Crystalline dark-matter singularity mine deploying pulsating gravitational distortion rings and curving incoming debris towards its vortex.
+  - **Kamikaze Swarmer (`TYPE_SWARMER = 11`)**: Bio-luminescent void leeches flocking in packs with erratic sinusoidal swimming tails.
+  - **Passing Void Debris (`TYPE_VOID_DEBRIS = 12`)**: Tumbling faceted 3D asteroids with deep-space specular lighting drifting weightlessly through space.
+  - Zero-allocation obstacle swap-remove synchronization via `ObstacleSwapRemoveListener`.
+- **feat(menu):** Modern Cyberpunk Command Hub / Main Menu (`MainMenuScreen.kt`):
+  - Live 3D deep space backdrop with floating bubble responding to time and touch.
+  - 5 glassmorphic command deck navigation tabs:
+    - `[ SORTIE ]`: Mission launcher with mode selection (Endless Void, Solar Cataclysm, Singularity Breach).
+    - `[ ARSENAL ]`: Sentinel Drone Tech Tree bay, procedural Bubble & Shield Skin preview/customization, and Protocol Codex.
+    - `[ BOUNTIES ]`: Daily & weekly missions with live progress tracking and Prism & XP rewards.
+    - `[ DATA LINK ]`: Pilot profile with custom GamerTag editor, Pilot Rank, career stats, and competitive local scoreboards.
+    - `[ SYSTEM ]`: Audio synth toggles, 120Hz/60Hz setting, haptic feedback, and cinematic lore replay.
+- **feat(games):** Local Offline Games & Profile Gateway (`LocalOfflineGamesGateway.kt`):
+  - 100% offline, zero external accounts or developer fees required.
+  - Career stats tracking, XP progression, dynamic pilot rank calculation (`CADET I` through `SINGULARITY MASTER`), and local leaderboard management.
+- **feat(flow):** Seamless Game Screen & Activity Navigation:
+  - 4-stage startup pipeline: Stage 0 (Studio Splash) $\to$ Stage 1 (Core Lore) $\to$ Stage 2 (Main Menu) $\to$ Stage 3 (Combat).
+  - Added "BASE HUB" and "RETRY" buttons on Game Over dialog.
+- **test(suite):** Full test suite expanded to **209/209 unit tests** (0 failures, 0 skipped, 0 heap allocations on hot paths) in `Phase17SpaceAndMenuTest.kt`.
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.12.0.apk` (`versionCode = 220`).
 
 ### `v1.11.0` (2026-11-11) — Phase 16: Cinematic Studio Splash & 2-Second Core Lore Intro Sequence
 - **feat(splash):** Tachyon Studio Animated Laser-Cut Hero Splash:
@@ -782,11 +860,14 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-11
-- **Current Version:** `v1.11.0` (RELEASED)
+- **Current Version:** `v1.12.0` (RELEASED)
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 16 COMPLETE (Cinematic Studio Splash & 2-Second Core Lore Intro Sequence)**:
-  - Tachyon Studio Hero Splash: Integrated vertical Compose Canvas hero splash with laser cut border, cutting torch sparks, thermal flashover, 70° specular sheen sweep, shockwave, diamond starburst, 36 falling dust particles, tap-to-skip support, and procedural audio synth `TachyonAudioSynth.kt`.
-  - Core Lore Intro Animation: 2.0-second 3-phase cinematic sequence setting up the narrative premise: Act 1 (Singularity Event Horizon & telemetry), Act 2 (Genesis Bubble emergence with 64-vertex soft-body wobble & Aegis ink barrier activation), Act 3 (Supersonic thruster ignition, perspective warp streaks @ 126 km/h, camera trauma shake, and tactical directive banner `[ DRAW SHIELDS • PARRY THE VOID ]`). Includes tap-to-skip and procedural 16-bit PCM synth `CoreLoreAudioSynth.kt`.
-  - Sequential Startup Pipeline: Stage 0 (Studio Splash) $\to$ Stage 1 (Core Lore) $\to$ Stage 2 (Live Game) in `MainActivity.kt`. Base `GameScreen` mounts concurrently underneath for zero-jank background shader/pool warmup and instantaneous 120Hz frame transitions.
-  - Verification: 196/196 unit tests passing with zero heap allocations on hot paths, signed release APK `bubble-defense-v1.11.0.apk` (1,568,024 bytes, Scheme v2 verified, AAPT dump badging 0 errors).
-- **Next Task:** Solicit player feedback on opening cinematic pacing, audio balance on physical devices, and gameplay onboarding flow.
+- **Status:** **PHASE 17 COMPLETE (3D Deep Space Field, Zero-G Float Physics, Predatory Enemy AI & Modern Cyberpunk Command Hub)**:
+  - 3D Deep Space Field: Removed constrained highway road graphics; expanded play space to open cosmos ($X \in [-350, 1350]$) with multi-depth passing space dust, midground combat volume, and background celestial nebulae and mega-asteroids.
+  - Zero-G Float Physics: Implemented 3-axis Lissajous microgravity buoyancy, gyroscopic reaction tilting into swipe gestures, damped spring recovery, directional RCS micro-thrusters, and 3 orbiting escort satellites with depth sorting.
+  - Predatory Mal-Intent Enemy AI: Implemented Void Stalkers (flank, orbit, lunge), Sniper Platforms (horizon anchoring, red laser telegraph, railgun spike), Gravity Weavers (singularity mine with gravitational attraction vortex), Kamikaze Swarmers (erratic bio-tail flocking), and Passing 3D Void Debris.
+  - Cyberpunk Command Hub (Main Menu): Implemented modern 5-tab glassmorphic hub (`[ SORTIE ]`, `[ ARSENAL ]`, `[ BOUNTIES ]`, `[ DATA LINK ]`, `[ SYSTEM ]`) with live 3D floating bubble backdrop and GamerTag editor.
+  - Local Offline Games Gateway: Quarantined offline gateway managing career stats, XP progression, rank titles (`CADET I` to `SINGULARITY MASTER`), competitive local scoreboards, and bounty mission claims.
+  - Navigation Flow: Multi-stage pipeline Stage 0 (Splash) $\to$ Stage 1 (Lore) $\to$ Stage 2 (Main Menu) $\to$ Stage 3 (Combat) with "BASE HUB" and "RETRY" actions on Game Over.
+  - Verification: 209/209 unit tests passing with zero heap allocations on hot paths, signed release APK `bubble-defense-v1.12.0.apk`.
+- **Next Task:** Solicit player feedback on enemy AI balance, zero-g float responsiveness on physical devices, and bounty progression pacing.
