@@ -59,9 +59,49 @@ class PhysicsSystem(private val world: GameWorld) {
      * Executes a full fixed frame step (subdivided into [GameConfig.SUBSTEPS] narrowphase passes).
      */
     fun stepFrame(dt: Float) {
+        updateActivePowers(dt)
         val subDt = dt / GameConfig.SUBSTEPS.toFloat()
         for (s in 0 until GameConfig.SUBSTEPS) {
             stepSubstep(subDt)
+        }
+    }
+
+    private fun updateActivePowers(dt: Float) {
+        if (world.activePowerType == GameConfig.POWER_CHRONO_WARP) {
+            world.activePowerTimer -= dt
+            if (world.activePowerTimer <= 0f) {
+                world.activePowerType = GameConfig.POWER_NONE
+                world.timeScale = 1.0f
+            }
+        } else if (world.activePowerType == GameConfig.POWER_PLASMA_LANCE) {
+            world.activePowerTimer -= dt
+            // Incinerate obstacles in central column [380f, 620f]
+            var i = 0
+            while (i < world.obstacles.count) {
+                val ox = world.obstacles.x[i]
+                val oy = world.obstacles.y[i]
+                if (ox in 380f..620f && oy in 60f..1450f) {
+                    val oType = world.obstacles.type[i]
+                    if (oType != GameConfig.TYPE_PRISM_CARRIER && oType != GameConfig.TYPE_ARMOR_CRYSTAL) {
+                        spawnSparkBurst(ox, oy, Vec2.UP, count = 8, isParry = true)
+                        world.obstacles.removeAt(i)
+                        world.addScore(150)
+                        continue
+                    }
+                }
+                i++
+            }
+            if (world.activePowerTimer <= 0f) {
+                world.activePowerType = GameConfig.POWER_NONE
+            }
+        }
+
+        if (world.empShockwaveTimer > 0f) {
+            world.empShockwaveTimer -= dt
+            world.empShockwaveRadius += 2400f * dt
+            if (world.empShockwaveTimer <= 0f && world.activePowerType == GameConfig.POWER_SUPERNOVA_EMP) {
+                world.activePowerType = GameConfig.POWER_NONE
+            }
         }
     }
 
@@ -94,6 +134,11 @@ class PhysicsSystem(private val world: GameWorld) {
     // ---------------------------------------------------------------------------------------------
 
     private fun integrateObstacles(subDt: Float) {
+        val effectiveDt = if (world.activePowerType == GameConfig.POWER_CHRONO_WARP) {
+            subDt * GameConfig.POWER_CHRONO_TIMESCALE
+        } else {
+            subDt
+        }
         var i = 0
         while (i < world.obstacles.count) {
             val ox = world.obstacles.x[i]
@@ -134,13 +179,13 @@ class PhysicsSystem(private val world: GameWorld) {
 
             // Apply gravity (+Y down) or parry horizon escape thrust (-Y up)
             var nvy = if (isParried) {
-                val thrustVy = world.obstacles.vy[i] - 700f * subDt
+                val thrustVy = world.obstacles.vy[i] - 700f * effectiveDt
                 if (thrustVy > -200f) -200f else thrustVy
             } else if (isDeflected) {
-                val bounceVy = world.obstacles.vy[i] - 300f * subDt
+                val bounceVy = world.obstacles.vy[i] - 300f * effectiveDt
                 if (bounceVy > -100f) -100f else bounceVy
             } else {
-                world.obstacles.vy[i] + GameConfig.GRAVITY_Y * subDt
+                world.obstacles.vy[i] + GameConfig.GRAVITY_Y * effectiveDt
             }
             var nvx = world.obstacles.vx[i]
 
@@ -154,15 +199,15 @@ class PhysicsSystem(private val world: GameWorld) {
 
             world.obstacles.vx[i] = nvx
             world.obstacles.vy[i] = nvy
-            world.obstacles.x[i] = ox + nvx * subDt
-            world.obstacles.y[i] = oy + nvy * subDt
+            world.obstacles.x[i] = ox + nvx * effectiveDt
+            world.obstacles.y[i] = oy + nvy * effectiveDt
 
             // Angular velocity integration
-            world.obstacles.angle[i] += world.obstacles.angVel[i] * subDt
-            world.obstacles.age[i] += subDt
+            world.obstacles.angle[i] += world.obstacles.angVel[i] * effectiveDt
+            world.obstacles.age[i] += effectiveDt
 
             if (world.obstacles.hitCooldown[i] > 0f) {
-                world.obstacles.hitCooldown[i] -= subDt
+                world.obstacles.hitCooldown[i] -= effectiveDt
                 if (world.obstacles.hitCooldown[i] < 0f) {
                     world.obstacles.hitCooldown[i] = 0f
                 }
@@ -339,6 +384,7 @@ class PhysicsSystem(private val world: GameWorld) {
             world.obstacles.flags[obsIdx] = world.obstacles.flags[obsIdx] or GameConfig.FLAG_PARRIED
             world.perfectParriesTotal++
             world.parryTriggerCount++
+            world.addParryPowerProgress()
             world.triggerHitStop(GameConfig.HIT_STOP_PARRY_DURATION)
             world.addTrauma(GameConfig.TRAUMA_PARRY)
 
@@ -397,11 +443,20 @@ class PhysicsSystem(private val world: GameWorld) {
                 contact.point.x, contact.point.y - 10f,
                 -60f, 0.40f, 1.1f, FloatingTextPool.TEXT_CRUSH
             )
-        } else if (obsType == GameConfig.TYPE_PRISM_CARRIER) {
-            // Prism carrier bounces off shields cleanly without damaging integrity
+        } else if (obsType == GameConfig.TYPE_PRISM_CARRIER || obsType == GameConfig.TYPE_ARMOR_CRYSTAL) {
+            // Friendly bounties and armor crystals bounce off shields cleanly without damaging integrity
             world.floatingTexts.spawn(
                 contact.point.x, contact.point.y - 10f,
                 -50f, 0.35f, 1.0f, FloatingTextPool.TEXT_PLUS_5
+            )
+        } else if (obsType == GameConfig.TYPE_METEORITE) {
+            // Meteorite deals heavy structural strain (50% integrity loss)
+            world.shieldSegments.integrity[segIdx] -= 50f
+            world.triggerHitStop(0.024f)
+            world.addTrauma(0.30f)
+            world.floatingTexts.spawn(
+                contact.point.x, contact.point.y - 10f,
+                -60f, 0.40f, 1.1f, FloatingTextPool.TEXT_CRUSH
             )
         } else {
             val damage = impulse * GameConfig.IMPACT_DAMAGE_PER_IMPULSE
@@ -512,8 +567,34 @@ class PhysicsSystem(private val world: GameWorld) {
             return
         }
 
+        // Untapped Green Armor Crystal (absorbed gently without damage)
+        if (obsType == GameConfig.TYPE_ARMOR_CRYSTAL) {
+            spawnSparkBurst(ox, oy, Vec2.UP, count = 8, isParry = true)
+            world.obstacles.removeAt(obsIdx)
+            return
+        }
+
         if (world.bubbleInvulnTimer <= 0f) {
+            world.timeSinceLastDamage = 0f
+
+            // Check Overshield Absorption: protects core HP!
+            if (world.overshieldHp > 0) {
+                world.overshieldHp--
+                world.bubbleInvulnTimer = 0.8f
+                world.addTrauma(0.55f)
+                world.floatingTexts.spawn(
+                    world.bubbleX, world.bubbleY - 45f,
+                    -75f, 0.50f, 1.3f, FloatingTextPool.TEXT_CRUSH
+                )
+                spawnSparkBurst(ox, oy, Vec2.UP, count = 16, isParry = true)
+                world.obstacles.removeAt(obsIdx)
+                return
+            }
+
             world.bubbleHp--
+            // Strip combo streak perk on damage breach
+            world.comboCount = 0
+            world.comboMultiplier = 1.0f
             world.bubbleInvulnTimer = GameConfig.BUBBLE_INVULN_TIME
             world.addTrauma(GameConfig.TRAUMA_BUBBLE_HIT)
 

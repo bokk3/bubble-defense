@@ -234,8 +234,8 @@ class DirectorSystemTest {
         world.directorThreatBudget = 4f
         world.directorSpawnCooldown = 0.5f
 
-        // Warm up JIT
-        for (i in 0 until 2000) {
+        // Warm up JIT across all archetypes, valleys, and solar flare storm phases
+        for (i in 0 until 6000) {
             director.step(GameConfig.FIXED_DT)
             if (world.obstacles.count >= 100) world.obstacles.clear()
         }

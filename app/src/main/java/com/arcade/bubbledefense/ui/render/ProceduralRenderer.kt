@@ -189,6 +189,9 @@ class ProceduralRenderer {
             drawDrones(drawScope, world, scaler, droneSystem)
         }
 
+        // 8c. Draw Stored Special Powers Active VFX (Chrono Warp, Supernova EMP, Plasma Lance)
+        drawSpecialPowersVFX(drawScope, world, scaler)
+
         // 9. Draw 3D Threat Telegraph Warning Lasers & Chevrons
         drawTelegraphs(drawScope, world, scaler)
 
@@ -335,6 +338,36 @@ class ProceduralRenderer {
             center = Offset(sunCx, sunCy),
             style = strokeWhiteCore
         )
+
+        // Solar Flare Coronal Mass Ejection Prominence Arches
+        if (world.solarFlareState > 0 || world.solarFlareIntensity > 0f) {
+            val flareIntensity = if (world.solarFlareState == 1) world.solarFlareIntensity else 0.85f
+            val flareColor = Color(0xFFFF4400)
+
+            // Expanding coronal blast shockwave
+            val blastR = singularityRadius * (1.6f + 2.0f * (1f - (time * 1.5f % 1f)))
+            drawScope.drawCircle(
+                color = flareColor.copy(alpha = 0.35f * flareIntensity),
+                radius = blastR,
+                center = Offset(sunCx, sunCy),
+                style = strokeGlowWide
+            )
+
+            // Prominence solar flare loops
+            val loopCount = 6
+            for (lp in 0 until loopCount) {
+                val ang = (lp * (2.0 * PI / loopCount)).toFloat() + time * 0.8f
+                val loopDist = singularityRadius * (1.6f + 0.6f * sin(time * 6f + lp))
+                val lx = sunCx + cos(ang) * loopDist
+                val ly = sunCy + sin(ang) * (loopDist * 0.6f)
+                drawScope.drawCircle(
+                    color = COLOR_AMBER.copy(alpha = 0.60f * flareIntensity),
+                    radius = 8f + lp * 2f,
+                    center = Offset(lx, ly),
+                    style = strokeRing
+                )
+            }
+        }
 
         // Horizon Void Boundary Laser Line
         drawScope.drawLine(
@@ -997,6 +1030,32 @@ class ProceduralRenderer {
                 center = Offset(tipX, tipY)
             )
         }
+
+        // 5. Overshield Aegis Forcefield (Translucent Emerald-Gold Hex Shell)
+        if (world.overshieldHp > 0) {
+            val overshieldR = sbr + 14f * scaler.scaleLaneDepth(world.bubbleY)
+            val aegisPulse = 0.85f + 0.15f * sin(time * 6f)
+            val aegisColor = Color(0xFF00FF99)
+            drawScope.drawCircle(
+                color = aegisColor.copy(alpha = 0.20f * aegisPulse),
+                radius = overshieldR,
+                center = Offset(sbx, sby)
+            )
+            drawScope.drawCircle(
+                color = aegisColor.copy(alpha = 0.85f * aegisPulse),
+                radius = overshieldR,
+                center = Offset(sbx, sby),
+                style = strokeCoreThin
+            )
+            // 4 Orbiting Aegis Shield Nodes
+            for (node in 0 until 4) {
+                val nodeAng = time * 2.5f + (node * PI.toFloat() * 0.5f)
+                val nx = sbx + cos(nodeAng) * overshieldR
+                val ny = sby + sin(nodeAng) * (overshieldR * 0.65f)
+                drawScope.drawCircle(COLOR_WHITE, radius = 3.5f, center = Offset(nx, ny))
+                drawScope.drawCircle(COLOR_AMBER, radius = 6f, center = Offset(nx, ny), style = strokeRing)
+            }
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1058,6 +1117,8 @@ class ProceduralRenderer {
                 GameConfig.TYPE_SPLITTER -> drawSplitter3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
                 GameConfig.TYPE_SHARD -> drawShard3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
                 GameConfig.TYPE_PRISM_CARRIER -> drawPrismCarrier3D(drawScope, ox, oy, r, angle, depthScale, voidFogAlpha, world.gameTime)
+                GameConfig.TYPE_ARMOR_CRYSTAL -> drawArmorCrystal3D(drawScope, ox, oy, r, depthScale, voidFogAlpha, world.gameTime, wy)
+                GameConfig.TYPE_METEORITE -> drawMeteorite3D(drawScope, ox, oy, r, vx, vy, depthScale, isParried, voidFogAlpha, world.gameTime)
             }
         }
     }
@@ -1326,6 +1387,140 @@ class ProceduralRenderer {
         )
     }
 
+    private fun drawArmorCrystal3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        depthScale: Float,
+        voidFogAlpha: Float,
+        time: Float,
+        wy: Float
+    ) {
+        val center = Offset(cx, cy)
+        val emeraldColor = Color(0xFF00FF99)
+
+        // 1. Contracting Timing Resonance Ring
+        val cycle = (time * 1.6f) % 1.0f
+        val ringR = r * (1.0f + (1f - cycle) * 1.5f)
+        val ringAlpha = (cycle * voidFogAlpha * 0.85f).coerceIn(0.1f, 0.9f)
+        val inTapZone = wy in GameConfig.ARMOR_CRYSTAL_MIN_TAP_Y..GameConfig.ARMOR_CRYSTAL_MAX_TAP_Y
+        val ringColor = if (inTapZone) emeraldColor else COLOR_AMBER
+
+        drawScope.drawCircle(
+            color = ringColor.copy(alpha = ringAlpha),
+            radius = ringR,
+            center = center,
+            style = strokeCoreThin
+        )
+
+        // 2. Nano-Repair Octahedron Body (Rotates with time)
+        val rot = time * 3.0f
+        val cosR = cos(rot)
+        val sinR = sin(rot)
+        scratchPath.rewind()
+        scratchPath.moveTo(cx + (-r * 0.7f * cosR), cy + (-r * 0.7f * sinR))
+        scratchPath.lineTo(cx + (r * cosR - r * sinR), cy + (r * sinR + r * cosR))
+        scratchPath.lineTo(cx + (r * 0.7f * cosR), cy + (r * 0.7f * sinR))
+        scratchPath.lineTo(cx + (-r * cosR + r * sinR), cy + (-r * sinR - r * cosR))
+        scratchPath.close()
+
+        // Outer glow
+        drawScope.drawCircle(
+            color = emeraldColor.copy(alpha = 0.25f * voidFogAlpha),
+            radius = r + 8f * depthScale,
+            center = center
+        )
+        // Body fill
+        drawScope.drawPath(scratchPath, color = Color(0xFF062A1E).copy(alpha = 0.85f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(scratchPath, color = emeraldColor.copy(alpha = voidFogAlpha), style = strokeCoreThin)
+
+        // 3. Central pulsating core
+        val pulse = 0.75f + 0.25f * sin(time * 8f)
+        drawScope.drawCircle(
+            color = COLOR_WHITE.copy(alpha = 0.95f * voidFogAlpha),
+            radius = r * 0.35f * pulse,
+            center = center
+        )
+
+        // 4. "TAP" prompt text if inside optimal tap zone
+        if (inTapZone && depthScale > 0.35f) {
+            hudPaintCenter.textSize = (11f * depthScale * 20f).coerceIn(10f, 22f)
+            hudPaintCenter.color = 0xFF00FF99.toInt()
+            hudPaintCenter.alpha = (230 * voidFogAlpha).toInt()
+            drawScope.drawContext.canvas.nativeCanvas.drawText("TAP!", cx, cy - r - 8f * depthScale, hudPaintCenter)
+        }
+    }
+
+    private fun drawMeteorite3D(
+        drawScope: DrawScope,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        vx: Float,
+        vy: Float,
+        depthScale: Float,
+        isParried: Boolean,
+        voidFogAlpha: Float,
+        time: Float
+    ) {
+        val center = Offset(cx, cy)
+        val speedSq = vx * vx + vy * vy
+        val heading = if (speedSq > 1f) atan2(vy, vx) else (PI.toFloat() * 0.5f)
+
+        // 1. Fiery Burning Plasma Tail
+        val tailLen = r * 3.2f
+        val tailX = cx - cos(heading) * tailLen
+        val tailY = cy - sin(heading) * tailLen
+        val flameColor = if (isParried) COLOR_CYAN else Color(0xFFFF5500)
+        drawScope.drawLine(
+            color = flameColor.copy(alpha = 0.45f * voidFogAlpha),
+            start = center,
+            end = Offset(tailX, tailY),
+            strokeWidth = 12f * depthScale
+        )
+        drawScope.drawLine(
+            color = COLOR_AMBER.copy(alpha = 0.80f * voidFogAlpha),
+            start = center,
+            end = Offset(cx - cos(heading) * (tailLen * 0.6f), cy - sin(heading) * (tailLen * 0.6f)),
+            strokeWidth = 5f * depthScale
+        )
+
+        // 2. Jagged Rocky Bolide Body
+        val segments = 7
+        scratchPath.rewind()
+        for (s in 0 until segments) {
+            val ang = s * (2.0 * PI / segments).toFloat() + time * 1.5f
+            val radVar = r * (0.85f + 0.30f * sin(ang * 3f + s))
+            val px = cx + cos(ang) * radVar
+            val py = cy + sin(ang) * radVar
+            if (s == 0) scratchPath.moveTo(px, py) else scratchPath.lineTo(px, py)
+        }
+        scratchPath.close()
+
+        // Outer heat aura
+        drawScope.drawCircle(
+            color = flameColor.copy(alpha = 0.30f * voidFogAlpha),
+            radius = r + 6f * depthScale,
+            center = center
+        )
+        // Dark molten crust
+        drawScope.drawPath(scratchPath, color = Color(0xFF1A0A04).copy(alpha = 0.90f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(scratchPath, color = flameColor.copy(alpha = 0.95f * voidFogAlpha), style = strokeCoreThin)
+
+        // Glowing molten fissures
+        drawScope.drawCircle(
+            color = COLOR_AMBER.copy(alpha = 0.85f * voidFogAlpha),
+            radius = r * 0.40f,
+            center = center
+        )
+        drawScope.drawCircle(
+            color = COLOR_WHITE.copy(alpha = 0.95f * voidFogAlpha),
+            radius = r * 0.18f,
+            center = center
+        )
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Sideline Sentinel Drones & Interceptor Beams
     // ---------------------------------------------------------------------------------------------
@@ -1502,6 +1697,91 @@ class ProceduralRenderer {
                 radius = coreR,
                 center = Offset(dsx, dsy)
             )
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Stored Special Powers Active VFX (Chrono Warp, Supernova EMP, Plasma Lance)
+    // ---------------------------------------------------------------------------------------------
+
+    private fun drawSpecialPowersVFX(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler
+    ) {
+        val time = world.gameTime
+
+        // 1. Chrono Warp Time Dilation Screen Border Glint
+        if (world.activePowerType == GameConfig.POWER_CHRONO_WARP) {
+            val pulse = 0.5f + 0.5f * sin(time * 10f)
+            val sw = scaler.screenWidthPx
+            val sh = scaler.screenHeightPx
+            drawScope.drawRect(
+                color = COLOR_CYAN.copy(alpha = 0.08f * pulse),
+                topLeft = Offset.Zero,
+                size = Size(sw, sh)
+            )
+            drawScope.drawRect(
+                color = COLOR_CYAN.copy(alpha = 0.35f * pulse),
+                topLeft = Offset.Zero,
+                size = Size(sw, sh),
+                style = strokeThickRing
+            )
+        }
+
+        // 2. Supernova EMP Shockwave Ring
+        if (world.empShockwaveTimer > 0f) {
+            val sx = scaler.worldLaneToScreenX(world.bubbleX, world.bubbleY)
+            val sy = scaler.worldLaneToScreenY(world.bubbleY)
+            val r = scaler.scaleLaneDistance(world.empShockwaveRadius, world.bubbleY)
+            val alpha = (world.empShockwaveTimer / 0.6f).coerceIn(0f, 1f)
+            drawScope.drawCircle(
+                color = COLOR_CYAN.copy(alpha = 0.25f * alpha),
+                radius = r,
+                center = Offset(sx, sy),
+                style = strokeGlowWide
+            )
+            drawScope.drawCircle(
+                color = COLOR_WHITE.copy(alpha = 0.90f * alpha),
+                radius = r,
+                center = Offset(sx, sy),
+                style = strokeThickRing
+            )
+        }
+
+        // 3. Plasma Lance Overdrive (Twin Orbital Death Beams)
+        if (world.activePowerType == GameConfig.POWER_PLASMA_LANCE) {
+            val ratio = (world.activePowerTimer / GameConfig.POWER_LANCE_DURATION).coerceIn(0f, 1f)
+            val lanceXs = floatArrayOf(450f, 550f)
+            val horizonY = scaler.camera.vanishingPointY
+            val bottomY = scaler.screenHeightPx
+
+            for (lx in lanceXs) {
+                val topSx = scaler.worldLaneToScreenX(lx, 30f)
+                val botSx = scaler.worldLaneToScreenX(lx, 1600f)
+
+                // Wide plasma core
+                drawScope.drawLine(
+                    color = COLOR_AMBER.copy(alpha = 0.35f * ratio),
+                    start = Offset(topSx, horizonY),
+                    end = Offset(botSx, bottomY),
+                    strokeWidth = 24f
+                )
+                // Mid laser
+                drawScope.drawLine(
+                    color = Color(0xFFFF4400).copy(alpha = 0.85f * ratio),
+                    start = Offset(topSx, horizonY),
+                    end = Offset(botSx, bottomY),
+                    strokeWidth = 10f
+                )
+                // Hot white laser center
+                drawScope.drawLine(
+                    color = COLOR_WHITE.copy(alpha = 0.95f * ratio),
+                    start = Offset(topSx, horizonY),
+                    end = Offset(botSx, bottomY),
+                    strokeWidth = 3f
+                )
+            }
         }
     }
 
@@ -1925,17 +2205,37 @@ class ProceduralRenderer {
             }
         }
 
+        // Overshield Aegis Diamond Indicator
+        if (world.overshieldHp > 0) {
+            val overshieldY = coreY - 18f * scale
+            scratchPath.rewind()
+            scratchPath.moveTo(cx, overshieldY - 7f * scale)
+            scratchPath.lineTo(cx + 7f * scale, overshieldY)
+            scratchPath.lineTo(cx, overshieldY + 7f * scale)
+            scratchPath.lineTo(cx - 7f * scale, overshieldY)
+            scratchPath.close()
+            drawScope.drawPath(scratchPath, color = Color(0xFF00FF99).copy(alpha = 0.90f), style = Fill)
+            drawScope.drawPath(scratchPath, color = COLOR_WHITE, style = strokeWhiteCore)
+        }
+
         // Sentinel Drone Status Badge
         if (world.droneLevel > 0) {
             hudPaintCenter.textSize = 10f * scale
-            hudPaintCenter.color = if (world.droneLevel >= 3) 0xFFFFB800.toInt() else 0xFF00F0FF.toInt()
-            hudPaintCenter.alpha = 200
-            val droneStatus = when (world.droneLevel) {
-                1 -> "SENTINEL 1 ACTIVE"
-                2 -> "DUAL SENTINELS ACTIVE"
-                else -> "SENTINELS OVERCHARGED"
+            if (world.droneDisruptedTimer > 0f) {
+                hudPaintCenter.color = 0xFFFF2200.toInt()
+                hudPaintCenter.alpha = 255
+                val rebootSec = String.format("%.1f", world.droneDisruptedTimer)
+                canvas.drawText("⚡ SENTINELS EMP REBOOTING [${rebootSec}s] ⚡", cx, topY + 58f * scale, hudPaintCenter)
+            } else {
+                hudPaintCenter.color = if (world.droneLevel >= 3) 0xFFFFB800.toInt() else 0xFF00F0FF.toInt()
+                hudPaintCenter.alpha = 200
+                val droneStatus = when (world.droneLevel) {
+                    1 -> "SENTINEL 1 ACTIVE"
+                    2 -> "DUAL SENTINELS ACTIVE"
+                    else -> "SENTINELS OVERCHARGED"
+                }
+                canvas.drawText("✦ $droneStatus ✦", cx, topY + 58f * scale, hudPaintCenter)
             }
-            canvas.drawText("✦ $droneStatus ✦", cx, topY + 58f * scale, hudPaintCenter)
         }
 
         // 3. Top-Right: Score, Multiplier & Soft Currency Prisms
@@ -1958,6 +2258,13 @@ class ProceduralRenderer {
             canvas.drawText(comboText, sw - padX, rightY, hudPaintRight)
             rightY += 18f * scale
         }
+
+        // Stored Special Powers Readout
+        hudPaintRight.textSize = 11f * scale
+        hudPaintRight.color = 0xFF00F0FF.toInt()
+        hudPaintRight.alpha = 220
+        canvas.drawText("POWERS: ${world.storedPowerCharges}/3", sw - padX, rightY, hudPaintRight)
+        rightY += 18f * scale
 
         hudPaintRight.textSize = 12f * scale
         hudPaintRight.color = 0xFF00FF99.toInt() // Green
@@ -2009,16 +2316,28 @@ class ProceduralRenderer {
             )
 
             // Main Banner Text
-            hudPaintCenter.textSize = 20f * scale
-            hudPaintCenter.color = 0xFFFFFFFF.toInt()
+            val flareWarning = world.solarFlareState == 1
+            hudPaintCenter.textSize = if (flareWarning) 16f * scale else 20f * scale
+            hudPaintCenter.color = if (flareWarning) 0xFFFF4400.toInt() else 0xFFFFFFFF.toInt()
             hudPaintCenter.alpha = (255 * bannerAlpha).toInt().coerceIn(0, 255)
-            canvas.drawText("WAVE ${world.currentWave} • ${world.wavePhaseName}", cx, bannerY + 28f * scale, hudPaintCenter)
+            val bannerTitle = if (flareWarning) {
+                "⚠ SOLAR FLARE DETECTED [${String.format("%.1f", world.solarFlareTimer)}s] ⚠"
+            } else {
+                "WAVE ${world.currentWave} • ${world.wavePhaseName}"
+            }
+            canvas.drawText(bannerTitle, cx, bannerY + 28f * scale, hudPaintCenter)
 
             // Subtitle
-            hudPaintCenter.textSize = 11f * scale
-            hudPaintCenter.color = if (world.wavePhaseName == "CRUNCH") 0xFFFFB800.toInt() else 0xFF00FF99.toInt()
+            hudPaintCenter.textSize = 10f * scale
+            hudPaintCenter.color = if (flareWarning) 0xFFFFB800.toInt() else if (world.wavePhaseName == "CRUNCH") 0xFFFFB800.toInt() else 0xFF00FF99.toInt()
             hudPaintCenter.alpha = (230 * bannerAlpha).toInt().coerceIn(0, 255)
-            val subMsg = if (world.wavePhaseName == "CRUNCH") "INCOMING THREATS — DEFEND TARGET" else "HARVEST VALLEY — COLLECT PRISMS"
+            val subMsg = if (flareWarning) {
+                "CORONAL EMP • PERKS DISRUPTED • METEORITES INCOMING"
+            } else if (world.wavePhaseName == "CRUNCH") {
+                "INCOMING THREATS — DEFEND TARGET"
+            } else {
+                "HARVEST VALLEY — COLLECT PRISMS"
+            }
             canvas.drawText(subMsg, cx, bannerY + 48f * scale, hudPaintCenter)
         }
 

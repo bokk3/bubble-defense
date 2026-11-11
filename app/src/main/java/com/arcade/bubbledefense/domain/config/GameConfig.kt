@@ -223,11 +223,52 @@ object GameConfig {
     const val TYPE_SPLITTER: Byte = 3
     const val TYPE_SHARD: Byte = 4
     const val TYPE_PRISM_CARRIER: Byte = 5
+    const val TYPE_ARMOR_CRYSTAL: Byte = 6
+    const val TYPE_METEORITE: Byte = 7
 
     const val FLAG_HAS_SPLIT: Int = 1 shl 0
     const val FLAG_CCD: Int = 1 shl 1
     const val FLAG_DEFLECTED: Int = 1 shl 2
     const val FLAG_PARRIED: Int = 1 shl 3
+
+    // Green Armor Crystal (Tactical Nano-Repair Relic)
+    const val ARMOR_CRYSTAL_RADIUS: Float = 26f
+    const val ARMOR_CRYSTAL_MASS: Float = 0.9f
+    const val ARMOR_CRYSTAL_RESTITUTION: Float = 0.80f
+    const val ARMOR_CRYSTAL_MIN_SPEED: Float = 180f
+    const val ARMOR_CRYSTAL_MAX_SPEED: Float = 280f
+    const val ARMOR_CRYSTAL_SPAWN_INTERVAL: Float = 18.0f
+    const val ARMOR_CRYSTAL_TAP_TOLERANCE: Float = 48f
+    const val ARMOR_CRYSTAL_MIN_TAP_Y: Float = 450f
+    const val ARMOR_CRYSTAL_MAX_TAP_Y: Float = 1400f
+    const val MAX_OVERSHIELD_HP: Int = 1
+
+    // Meteorite (Invasive Flaming Bolide during Solar Flare)
+    const val METEORITE_RADIUS: Float = 32f
+    const val METEORITE_MASS: Float = 3.5f
+    const val METEORITE_RESTITUTION: Float = 0.40f
+    const val METEORITE_MIN_SPEED: Float = 480f
+    const val METEORITE_MAX_SPEED: Float = 720f
+
+    // Solar Flare & Cataclysm Constants
+    const val SOLAR_FLARE_TRIGGER_COMBO: Int = 4
+    const val SOLAR_FLARE_MIN_INTERVAL: Float = 42.0f
+    const val SOLAR_FLARE_WARNING_DURATION: Float = 2.5f
+    const val SOLAR_FLARE_STORM_DURATION: Float = 6.0f
+    const val SOLAR_FLARE_DRONE_EMP_TIME: Float = 6.0f
+    const val SOLAR_FLARE_INK_SLOW_RATIO: Float = 0.65f
+
+    // 3 Stored Special Powers
+    const val MAX_STORED_POWERS: Int = 3
+    const val PARRIES_PER_POWER_CHARGE: Int = 4
+    const val POWER_NONE: Int = 0
+    const val POWER_CHRONO_WARP: Int = 1
+    const val POWER_SUPERNOVA_EMP: Int = 2
+    const val POWER_PLASMA_LANCE: Int = 3
+    const val POWER_CHRONO_DURATION: Float = 4.0f
+    const val POWER_CHRONO_TIMESCALE: Float = 0.25f
+    const val POWER_LANCE_DURATION: Float = 3.5f
+    const val POWER_EMP_BLAST_IMPULSE: Float = 600f
 
     // Prism Carrier (Peaceful Emerald Bounty Orb)
     const val PRISM_CARRIER_RADIUS: Float = 22f

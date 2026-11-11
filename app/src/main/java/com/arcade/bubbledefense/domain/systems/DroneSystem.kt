@@ -78,6 +78,21 @@ class DroneSystem(
 
         val time = world.gameTime
 
+        // If disrupted by solar EMP coronal surge, reboot drones without targeting
+        if (world.droneDisruptedTimer > 0f) {
+            world.droneDisruptedTimer -= dt
+            if (world.droneDisruptedTimer < 0f) world.droneDisruptedTimer = 0f
+            for (d in 0 until activeDroneCount) {
+                droneX[d] = DRONE_BASE_X[d] + sin(time * 6f + d) * 3f // Shuddering reboot
+                droneY[d] = DRONE_BASE_Y + sin(time * 4f + d) * 4f
+                droneAngle[d] = sin(time * 12f + d) * 0.08f
+                hasTarget[d] = false
+                targetIndex[d] = -1
+                beamTimer[d] = 0f
+            }
+            return
+        }
+
         for (d in 0 until activeDroneCount) {
             // Hover animation: smooth zero-g sine-wave bobbing
             droneX[d] = DRONE_BASE_X[d] + sin(time * 3f + d * PI.toFloat()) * 8f
@@ -97,7 +112,7 @@ class DroneSystem(
             val obsCount = world.obstacles.count
             for (i in 0 until obsCount) {
                 val oType = world.obstacles.type[i]
-                if (oType == GameConfig.TYPE_PRISM_CARRIER) continue // Preserve friendly bounties!
+                if (oType == GameConfig.TYPE_PRISM_CARRIER || oType == GameConfig.TYPE_ARMOR_CRYSTAL) continue // Preserve friendly bounties & armor crystals!
 
                 val oy = world.obstacles.y[i]
                 if (oy < GameConfig.DRONE_TARGET_RANGE_MIN_Y || oy > GameConfig.DRONE_TARGET_RANGE_MAX_Y) continue

@@ -27,6 +27,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.5.0`** | **Phase 10** | Procedural Algorithmic Music & Funky Void Grooves | **RELEASED** | 2026-11-11 |
 | **`v1.6.0`** | **Phase 11** | Tactical Grounding, Shield Kinetic Ripples & Prism Carriers | **RELEASED** | 2026-11-11 |
 | **`v1.7.0`** | **Phase 12** | Sideline Sentinel Drones & Tactical Prism Tech Tree | **RELEASED** | 2026-11-11 |
+| **`v1.8.0`** | **Phase 13** | Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers | **IN PROGRESS** | 2026-11-11 |
 
 ---
 
@@ -386,6 +387,31 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
   - [x] Assemble signed `app-release.apk` with `apksigner.bat` and `aapt dump badging` verification.
   - [x] Commit, tag `v1.7.0`, and publish GitHub release.
 
+### Phase 13: Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers (`v1.8.0`) — [COMPLETED]
+- [x] **T13.1 Interactive Green Armor Crystals (`TYPE_ARMOR_CRYSTAL`)** `[PHYS-AGENT]`, `[JUICE-AGENT]`
+  - [x] Add `TYPE_ARMOR_CRYSTAL = 6` with contracting timing resonance ring in `GameConfig.kt` and `DirectorSystem.kt`.
+  - [x] Implement tactile tap detection in `ShieldInputSystem.kt` (`checkArmorCrystalTap` on `ACTION_DOWN` within $48\text{ wu}$) restoring +1 Core HP or granting Overshield Aegis Plate (at 3 HP).
+  - [x] Exclude green armor crystals from autonomous drone targeting in `DroneSystem.kt`.
+- [x] **T13.2 Dynamic Solar Flare & Invasive Meteorite Shower** `[JUICE-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement "Things Going Good" dynamic trigger in `DirectorSystem.kt` (combo $\ge 4\text{x}$ or 14s sustained full HP).
+  - [x] Add Phase 1 Solar Flare warning telegraph (coronal prominence arches at horizon, siren, EMP drone reboot stun for $6.0\text{s}$, $-35\%$ solar ink drag).
+  - [x] Implement Phase 2 `TYPE_METEORITE = 7` invasive meteorite shower with high mass ($3.5$), parry deflection, burning plasma tails, and perk stripping on unshielded damage.
+- [x] **T13.3 3 Stored Special Powers Engine** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Power 1: Chrono Warp ($0.25\times$ time dilation on obstacles for $4.0\text{s}$, while shield drawing/ink runs at $1.0\times$).
+  - [x] Power 2: Supernova EMP Surge (radial shockwave vaporizing fragile threats, blasting heavy obstacles upward with $+600\text{ wu/s}$ kinetic impulse).
+  - [x] Power 3: Plasma Lance Overdrive (twin orbital laser beams disintegrating center corridor threats for $3.5\text{s}$ and purging solar radiation/EMP drone stun).
+  - [x] Implement stored charges inventory (up to 3, earned via 4 Perfect Parries per charge).
+- [x] **T13.4 Procedural 2.5D Rendering, Diegetic Power Hotbar & HUD** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Render green armor crystals with contracting resonance ring and emerald core facets.
+  - [x] Render flaming meteorites with molten core and fiery particle tails.
+  - [x] Render solar flare coronal arches and coronal heat vignette at horizon vanishing point.
+  - [x] Render overshield aegis forcefield on bubble.
+  - [x] Implement Tactical Special Powers Hotbar Dock in `GameScreen.kt` with live status badges (`[ ⏳ CHRONO ]`, `[ ⚡ EMP ]`, `[ 🔱 LANCE ]`) and zero recomposition overhead.
+- [x] **T13.5 Unit Tests, Verification & Release APK (v1.8.0)** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement `Phase13PowersAndCataclysmTest.kt` with 13 comprehensive unit tests covering crystal tapping, drone immunity, solar flare phases, perk stripping, and special powers.
+  - [x] Verify zero heap allocations in hot paths across all systems (167/167 unit tests passing).
+  - [x] Assemble signed release APK `bubble-defense-v1.8.0.apk` (874 KB, APK Signature Scheme v2 verified, `aapt dump badging` 0 errors).
+
 ---
 
 ## 3. Known Edge Cases & Handling
@@ -418,11 +444,36 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
     - Fast-changing live gameplay telemetry (Altitude, Speed, Score, Combo multiplier, 3 Neon Health Shield Cores, Prisms, and Wave banners) MUST be rendered directly in `ProceduralRenderer.kt` on the Canvas via `nativeCanvas` and cached `AndroidPaint` to guarantee locked 120Hz updates with 0ms latency and 0 Compose recomposition overhead. Interactive dialogs (Game Over, Clutch Revive, Retry, 2x Prisms ad button) are bridged via reactive Compose state `currentGameState` updated in `withFrameNanos`.
 
 13. **Downward Spawning Hazard Despawn Gate:**
-    - When hazards spawn near the horizon vanishing point ($Y = 30	ext{ wu} \le 60	ext{ wu}$), horizon escape despawn logic MUST strictly verify `(isParried || isDeflected) && vy < 0f`. Without the velocity direction and deflect condition, downward-moving threats ($V_y > 0$) were mistakenly deleted on frame 1 of their life.
+    - When hazards spawn near the horizon vanishing point ($Y = 30\text{ wu} \le 60\text{ wu}$), horizon escape despawn logic MUST strictly verify `(isParried || isDeflected) && vy < 0f`. Without the velocity direction and deflect condition, downward-moving threats ($V_y > 0$) were mistakenly deleted on frame 1 of their life.
+14. **JIT Warmup Across Pacing Phases & Cataclysms:**
+    - Allocation probes measuring zero-allocation hot paths across long simulation steps (5,000 steps = 41.6s) must pre-warm the JIT across a complete wave cycle (6,000 steps = 50s) to ensure Tier 1/Tier 2 profiling metadata for state transitions (e.g. Solar Flare warning, storm, meteorite spawning) has completed before sampling thread-allocated bytes.
+15. **Overshield Aegis Plate Absorption & Perk Stripping:**
+    - When an obstacle collides with the Bubble target while `overshieldHp > 0`, the hit is fully absorbed without reducing core `bubbleHp`, granting brief invulnerability and deflect velocity without clearing combo multipliers. Unshielded damage breaches immediately strip combo multipliers down to 1.0x and reset combo counts.
 
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.8.0` (2026-11-11) — Phase 13: Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers
+- **feat(armor):** Interactive Green Armor Crystals (`TYPE_ARMOR_CRYSTAL = 6`):
+  - Spawns periodically with a pulsing emerald core and contracting timing resonance ring.
+  - Tactile tap detection in `ShieldInputSystem.kt`: Tapping within valid tap zone restores +1 Core HP (if damaged) or charges an Overshield Aegis Plate (at full 3 HP), disintegrating the crystal with radiant emerald sparkles.
+  - Autonomous Sentinel Drones strictly ignore Green Armor Crystals, preserving tactical player interaction.
+- **feat(cataclysm):** Dynamic Solar Flare & Invasive Meteorite Shower (`TYPE_METEORITE = 7`):
+  - Dynamic pacing trigger in `DirectorSystem.kt`: Triggers when "things seem to be going good" (combo $\ge 4\text{x}$ or 14s sustained full HP).
+  - Phase 1 Warning (2.5s): Coronal prominence arches erupt across the horizon vanishing point, alarming solar siren sounds, Coronal Mass Ejection EMP temporarily stuns Sentinel Drones (6.0s reboot timer), and solar drag reduces ink regeneration rate by 35%.
+  - Phase 2 Storm (6.0s): Invasive flaming meteorites rain down at high velocity ($480\text{--}720\text{ wu/s}$) with massive kinetic mass ($3.5$), trailing burning plasma and ember particles.
+  - Unshielded damage breaches strip active combo multipliers back to 1.0x, raising survival stakes.
+- **feat(powers):** 3 Stored Special Powers Engine:
+  - Stored powers inventory (up to 3 charges), charged through skilled play (1 charge per 4 Perfect Parries).
+  - Power 1: **Chrono Warp** — 0.25x time dilation on obstacles and environment for 4.0s while shield drawing and ink run at full 1.0x speed.
+  - Power 2: **Supernova EMP Surge** — Instant radial shockwave vaporizing fragile threats and launching heavy obstacles upward with $+600\text{ wu/s}$ kinetic impulse.
+  - Power 3: **Plasma Lance Overdrive** — Twin orbital laser beams disintegrating center corridor threats for 3.5s and purging solar radiation/EMP drone stun.
+- **feat(hud):** Diegetic Tactical Powers Hotbar Dock & HUD:
+  - Zero-recomposition Compose hotbar dock (`[ ⏳ CHRONO ]`, `[ ⚡ EMP ]`, `[ 🔱 LANCE ]`) with live charge counters, active glow, and tap invocation.
+  - Diegetic Overshield Aegis forcefield ring, coronal solar prominence arches, and active power VFX (Chrono cyan tint, EMP expanding ring, twin Lance lasers).
+- **test(suite):** Full test suite expanded to **167/167 unit tests** (0 failures, 0 skipped, 0 heap allocations in hot paths).
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.8.0.apk` (874 KB, APK Signature Scheme v2 verified, `aapt dump badging` 0 errors).
 
 ### `v1.7.0` (2026-11-11) — Phase 12: Sideline Sentinel Drones & Tactical Prism Tech Tree
 - **feat(drones):** Autonomous Sideline Sentinel Drone System (`DroneSystem.kt`):
@@ -593,13 +644,12 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-11
-- **Current Version:** `v1.7.0` (RELEASED)
+- **Current Version:** `v1.8.0` (RELEASED)
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 12 COMPLETE (Sideline Sentinel Drones & Tactical Prism Tech Tree)**:
-  - Autonomous Sideline Sentinel Drones deployed along corridor shoulder rails with 2.5D perspective rendering, obsidian diamond chassis, and thruster plumes.
-  - Soft currency Prism unlock progression: Level 1 (Single Left Sentinel, 30 💎), Level 2 (Dual Sentinels, 60 💎), Level 3 (Rapid Overcharge, 100 💎).
-  - Real-time targeting algorithm prioritizing highest-threat obstacles closest to the defense bubble while safely ignoring friendly Emerald Prism Carriers.
-  - Interceptor plasma beam strikes dealing kinetic knockback and disintegrating small hazards.
-  - Interactive Drone Bay upgrade card on Game Over modal and live HUD status badge.
-  - Verified with 154/154 unit tests passing, zero heap allocations on hot paths, APK Signature Scheme v2 verified, and clean `aapt dump badging`.
-- **Next Task:** Solicit user feedback on drone combat pacing and visual flare.
+- **Status:** **PHASE 13 COMPLETE (Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers)**:
+  - Interactive Green Armor Crystals (`TYPE_ARMOR_CRYSTAL = 6`) with contracting resonance timing ring; tapping restores +1 core HP or builds an Overshield Aegis Plate (at full 3 HP); drones safely ignore crystals.
+  - Dynamic Solar Flare Cataclysms (`TYPE_METEORITE = 7`) triggered when "things seem to be going good" (combo $\ge 4\text{x}$ or 14s sustained full HP): Phase 1 warning with coronal arches, siren, drone EMP reboot stun, and -35% solar ink drag; Phase 2 storm with heavy flaming meteorites. Unshielded damage breaches strip combo multipliers.
+  - 3 Stored Special Powers engine: Chrono Warp (0.25x time dilation), Supernova EMP Surge (+600 wu/s upward blast), Plasma Lance Overdrive (twin orbital center column lasers & EMP purge). Charges earned via 4 Perfect Parries.
+  - Tactical Special Powers Hotbar Dock in Compose with zero recomposition overhead.
+  - Verified with 167/167 unit tests passing, zero heap allocations on hot paths, signed release APK `bubble-defense-v1.8.0.apk` (874 KB, Scheme v2 verified).
+- **Next Task:** Solicit user feedback on power balance, solar storm intensity, and armor tap timing.

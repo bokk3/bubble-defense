@@ -2,10 +2,14 @@ package com.arcade.bubbledefense.domain.systems
 
 import com.arcade.bubbledefense.domain.config.GameConfig
 import com.arcade.bubbledefense.domain.world.GameWorld
+import com.arcade.bubbledefense.engine.pool.FloatingTextPool
 import com.arcade.bubbledefense.engine.pool.InputRingBuffer
+import kotlin.math.PI
 import kotlin.math.ceil
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
@@ -71,7 +75,8 @@ class ShieldInputSystem(private val world: GameWorld) {
                     world.inkCooldownTimer = 0f
                 }
             } else if (world.ink < GameConfig.INK_MAX) {
-                world.ink = min(GameConfig.INK_MAX, world.ink + GameConfig.INK_REGEN_RATE * dt)
+                val regenMultiplier = if (world.solarFlareState == 2) GameConfig.SOLAR_FLARE_INK_SLOW_RATIO else 1.0f
+                world.ink = min(GameConfig.INK_MAX, world.ink + (GameConfig.INK_REGEN_RATE * regenMultiplier) * dt)
             }
         }
 
@@ -127,6 +132,11 @@ class ShieldInputSystem(private val world: GameWorld) {
     }
 
     private fun handleActionDown(x: Float, y: Float, timestampNanos: Long, pointer: Int) {
+        // 1. Direct tactile tap check on active Green Armor Crystals in time
+        if (checkArmorCrystalTap(x, y)) {
+            return // Tapped in time! Crystal absorbed, no shield line initiated
+        }
+
         var slot = findSlotForPointer(pointer)
         if (slot < 0) {
             slot = findAvailableSlot()
@@ -145,6 +155,59 @@ class ShieldInputSystem(private val world: GameWorld) {
 
         // Reset ink cooldown timer on finger contact
         world.inkCooldownTimer = GameConfig.INK_REGEN_DELAY
+    }
+
+    private fun checkArmorCrystalTap(tx: Float, ty: Float): Boolean {
+        val count = world.obstacles.count
+        for (i in 0 until count) {
+            if (world.obstacles.type[i] == GameConfig.TYPE_ARMOR_CRYSTAL) {
+                val ox = world.obstacles.x[i]
+                val oy = world.obstacles.y[i]
+                // Valid timing window: in playable corridor
+                if (oy in GameConfig.ARMOR_CRYSTAL_MIN_TAP_Y..GameConfig.ARMOR_CRYSTAL_MAX_TAP_Y) {
+                    val dx = tx - ox
+                    val dy = ty - oy
+                    val hitRadius = world.obstacles.radius[i] + GameConfig.ARMOR_CRYSTAL_TAP_TOLERANCE
+                    if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+                        onArmorCrystalTapped(i, ox, oy)
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    private fun onArmorCrystalTapped(index: Int, x: Float, y: Float) {
+        // Nano-repair burst: restore 1 Shield Core HP or Overshield
+        if (world.bubbleHp < GameConfig.BUBBLE_MAX_HP) {
+            world.bubbleHp++
+            world.floatingTexts.spawn(x, y - 20f, -80f, 0.45f, 1.4f, FloatingTextPool.TEXT_BOUNTY)
+        } else {
+            world.overshieldHp = min(GameConfig.MAX_OVERSHIELD_HP, world.overshieldHp + 1)
+            world.floatingTexts.spawn(x, y - 20f, -80f, 0.45f, 1.4f, FloatingTextPool.TEXT_PLUS_100)
+        }
+        world.addScore(300)
+
+        // Spawn emerald nano-particles
+        val pCount = 14
+        for (p in 0 until pCount) {
+            val angle = (p * (2.0 * PI / pCount)).toFloat()
+            val speed = 100f + (p % 4) * 35f
+            world.particles.spawn(
+                posX = x,
+                posY = y,
+                velX = cos(angle) * speed,
+                velY = sin(angle) * speed,
+                lifetime = 0.45f,
+                particleSize = 4f,
+                rot = angle,
+                argbColor = 0xFF00FF99.toInt() // Radiant emerald
+            )
+        }
+
+        // Remove crystal from pool
+        world.obstacles.removeAt(index)
     }
 
     private fun handleActionMove(x: Float, y: Float, timestampNanos: Long, pointer: Int) {

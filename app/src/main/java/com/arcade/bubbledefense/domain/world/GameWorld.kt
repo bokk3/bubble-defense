@@ -53,7 +53,9 @@ class GameWorld(initialSeed: Int = 1337) {
     var bubbleY: Float = GameConfig.BUBBLE_CENTER_Y
     var bubbleRadius: Float = GameConfig.BUBBLE_RADIUS
     var bubbleHp: Int = GameConfig.BUBBLE_MAX_HP
+    var overshieldHp: Int = 0
     var bubbleInvulnTimer: Float = 0f
+    var timeSinceLastDamage: Float = 0f
 
     /** Soft-body procedural harmonic wobble amplitudes for k in {3, 5, 7}. */
     val bubbleWobbleAmplitudes = FloatArray(3) { 0f }
@@ -138,6 +140,24 @@ class GameWorld(initialSeed: Int = 1337) {
     // Sideline Sentinel Drones (Tactical Unlockable Defense)
     // ---------------------------------------------------------------------------------------------
     var droneLevel: Int = 0
+    var droneDisruptedTimer: Float = 0f
+
+    // ---------------------------------------------------------------------------------------------
+    // Solar Flare & Cataclysm Dynamics
+    // ---------------------------------------------------------------------------------------------
+    var solarFlareState: Int = 0 // 0 = IDLE, 1 = WARNING, 2 = STORM
+    var solarFlareTimer: Float = 0f
+    var solarFlareIntensity: Float = 0f
+
+    // ---------------------------------------------------------------------------------------------
+    // 3 Stored Special Powers
+    // ---------------------------------------------------------------------------------------------
+    var storedPowerCharges: Int = 1
+    var activePowerType: Int = GameConfig.POWER_NONE
+    var activePowerTimer: Float = 0f
+    var parriesSinceLastCharge: Int = 0
+    var empShockwaveRadius: Float = 0f
+    var empShockwaveTimer: Float = 0f
 
     init {
         reset(initialSeed)
@@ -164,7 +184,9 @@ class GameWorld(initialSeed: Int = 1337) {
         bubbleY = GameConfig.BUBBLE_CENTER_Y
         bubbleRadius = GameConfig.BUBBLE_RADIUS
         bubbleHp = GameConfig.BUBBLE_MAX_HP
+        overshieldHp = 0
         bubbleInvulnTimer = 0f
+        timeSinceLastDamage = 0f
         bubbleWobbleAmplitudes[0] = 0.020f
         bubbleWobbleAmplitudes[1] = 0.012f
         bubbleWobbleAmplitudes[2] = 0.006f
@@ -186,6 +208,18 @@ class GameWorld(initialSeed: Int = 1337) {
         prismsCollected = 0
         perfectParriesTotal = 0
         parryTriggerCount = 0
+
+        // Reset Cataclysm & Powers
+        droneDisruptedTimer = 0f
+        solarFlareState = 0
+        solarFlareTimer = 0f
+        solarFlareIntensity = 0f
+        storedPowerCharges = 1
+        activePowerType = GameConfig.POWER_NONE
+        activePowerTimer = 0f
+        parriesSinceLastCharge = 0
+        empShockwaveRadius = 0f
+        empShockwaveTimer = 0f
 
         // Reset Juice
         trauma = 0f
@@ -261,6 +295,60 @@ class GameWorld(initialSeed: Int = 1337) {
         score = altitudeMeters.toInt() + bonusScore
         if (score > highScore) {
             highScore = score
+        }
+    }
+
+    /** Triggers one of the 3 stored special powers if charges are available. */
+    fun triggerPower(powerType: Int): Boolean {
+        if (storedPowerCharges <= 0 || activePowerType != GameConfig.POWER_NONE) return false
+        storedPowerCharges--
+        activePowerType = powerType
+        when (powerType) {
+            GameConfig.POWER_CHRONO_WARP -> {
+                activePowerTimer = GameConfig.POWER_CHRONO_DURATION
+                timeScale = GameConfig.POWER_CHRONO_TIMESCALE
+                floatingTexts.spawn(bubbleX, bubbleY - 80f, -80f, 0.4f, 1.4f, FloatingTextPool.TEXT_CLOSE_CALL)
+            }
+            GameConfig.POWER_SUPERNOVA_EMP -> {
+                activePowerTimer = 0.6f
+                empShockwaveTimer = 0.6f
+                empShockwaveRadius = 0f
+                trauma = 0.95f
+                // Instant radial impulse on all active obstacles
+                for (i in 0 until obstacles.count) {
+                    val oy = obstacles.y[i]
+                    if (oy in 100f..1500f) {
+                        val oType = obstacles.type[i]
+                        if (oType == GameConfig.TYPE_NEEDLE || oType == GameConfig.TYPE_SHARD || obstacles.radius[i] <= 18f) {
+                            obstacles.removeAt(i)
+                            addScore(100)
+                        } else {
+                            obstacles.vy[i] = -GameConfig.POWER_EMP_BLAST_IMPULSE
+                            obstacles.radius[i] = (obstacles.radius[i] * 0.75f).coerceAtLeast(14f)
+                        }
+                    }
+                }
+            }
+            GameConfig.POWER_PLASMA_LANCE -> {
+                activePowerTimer = GameConfig.POWER_LANCE_DURATION
+                // Purge solar flare radiation if active
+                if (solarFlareState == 1 || solarFlareState == 2) {
+                    droneDisruptedTimer = 0f
+                }
+            }
+        }
+        return true
+    }
+
+    /** Increments parry counter towards next stored special power charge. */
+    fun addParryPowerProgress() {
+        parriesSinceLastCharge++
+        if (parriesSinceLastCharge >= GameConfig.PARRIES_PER_POWER_CHARGE) {
+            parriesSinceLastCharge = 0
+            if (storedPowerCharges < GameConfig.MAX_STORED_POWERS) {
+                storedPowerCharges++
+                floatingTexts.spawn(bubbleX, bubbleY - 90f, -90f, 0.4f, 1.3f, FloatingTextPool.TEXT_BOUNTY)
+            }
         }
     }
 }

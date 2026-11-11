@@ -2,7 +2,9 @@ package com.arcade.bubbledefense.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -20,6 +23,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -197,6 +201,8 @@ fun GameScreen(
 
     // Monotonically increasing frame state to trigger draw pass without recomposing UI tree
     var drawTrigger by remember { mutableLongStateOf(0L) }
+    var currentCharges by remember { mutableIntStateOf(world.storedPowerCharges) }
+    var currentActivePower by remember { mutableIntStateOf(world.activePowerType) }
 
     // 2. Drive 120Hz Display Render Loop via withFrameNanos
     LaunchedEffect(Unit) {
@@ -209,6 +215,12 @@ fun GameScreen(
                 drawTrigger = gameLoop.frameTick
                 if (currentGameState != world.state) {
                     currentGameState = world.state
+                }
+                if (currentCharges != world.storedPowerCharges) {
+                    currentCharges = world.storedPowerCharges
+                }
+                if (currentActivePower != world.activePowerType) {
+                    currentActivePower = world.activePowerType
                 }
             }
         }
@@ -325,7 +337,87 @@ fun GameScreen(
             )
         }
 
-        // 5. Interactive Game Over Modal with Clutch Revive & Sub-300ms Instant Retry
+        // 5. Tactical Special Powers Hotbar Dock (Diegetic bottom command deck)
+        if (currentGameState == GameState.PLAYING) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp, start = 16.dp, end = 16.dp)
+                    .fillMaxWidth()
+                    .background(Color(0xE6050C16), shape = RoundedCornerShape(14.dp))
+                    .border(1.dp, ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Powers Charge Counter
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text(
+                        text = "POWERS",
+                        color = ProceduralRenderer.COLOR_CYAN,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = tnumStyle
+                    )
+                    Text(
+                        text = "$currentCharges/3",
+                        color = if (currentCharges > 0) ProceduralRenderer.COLOR_WHITE else Color(0xFF607080),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = tnumStyle
+                    )
+                }
+
+                SpecialPowerButton(
+                    modifier = Modifier.weight(1f),
+                    name = "CHRONO",
+                    icon = "⏳",
+                    color = ProceduralRenderer.COLOR_CYAN,
+                    charges = currentCharges,
+                    isActive = currentActivePower == GameConfig.POWER_CHRONO_WARP,
+                    onClick = {
+                        if (world.triggerPower(GameConfig.POWER_CHRONO_WARP)) {
+                            currentCharges = world.storedPowerCharges
+                            currentActivePower = world.activePowerType
+                        }
+                    }
+                )
+                SpecialPowerButton(
+                    modifier = Modifier.weight(1f),
+                    name = "EMP",
+                    icon = "⚡",
+                    color = ProceduralRenderer.COLOR_AMBER,
+                    charges = currentCharges,
+                    isActive = currentActivePower == GameConfig.POWER_SUPERNOVA_EMP,
+                    onClick = {
+                        if (world.triggerPower(GameConfig.POWER_SUPERNOVA_EMP)) {
+                            currentCharges = world.storedPowerCharges
+                            currentActivePower = world.activePowerType
+                        }
+                    }
+                )
+                SpecialPowerButton(
+                    modifier = Modifier.weight(1f),
+                    name = "LANCE",
+                    icon = "🔱",
+                    color = ProceduralRenderer.COLOR_MAGENTA,
+                    charges = currentCharges,
+                    isActive = currentActivePower == GameConfig.POWER_PLASMA_LANCE,
+                    onClick = {
+                        if (world.triggerPower(GameConfig.POWER_PLASMA_LANCE)) {
+                            currentCharges = world.storedPowerCharges
+                            currentActivePower = world.activePowerType
+                        }
+                    }
+                )
+            }
+        }
+
+        // 6. Interactive Game Over Modal with Clutch Revive & Sub-300ms Instant Retry
         if (currentGameState == GameState.GAME_OVER) {
             Box(
                 modifier = Modifier
@@ -379,6 +471,8 @@ fun GameScreen(
                                         if (result is RewardResult.Granted) {
                                             world.triggerClutchRevive()
                                             deathProcessed = false
+                                            currentCharges = world.storedPowerCharges
+                                            currentActivePower = world.activePowerType
                                             currentGameState = GameState.PLAYING
                                         }
                                     }
@@ -494,6 +588,8 @@ fun GameScreen(
                                     sequencer.reset()
                                     lastParryCount = 0
                                     deathProcessed = false
+                                    currentCharges = world.storedPowerCharges
+                                    currentActivePower = world.activePowerType
                                     world.state = GameState.PLAYING
                                     currentGameState = GameState.PLAYING
                                 }
@@ -510,6 +606,54 @@ fun GameScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Diegetic tactical special power invocation button.
+ * Zero-allocation Compose button with visual feedback on charges and active power state.
+ */
+@Composable
+private fun SpecialPowerButton(
+    modifier: Modifier = Modifier,
+    name: String,
+    icon: String,
+    color: Color,
+    charges: Int,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    val canActivate = charges > 0 && !isActive
+    val alpha = if (isActive) 1f else if (canActivate) 0.95f else 0.35f
+    val borderColor = if (isActive) color else if (canActivate) color.copy(alpha = 0.6f) else Color(0x33405060)
+    val bgColor = if (isActive) color.copy(alpha = 0.28f) else if (canActivate) color.copy(alpha = 0.12f) else Color(0x22101824)
+
+    Box(
+        modifier = modifier
+            .background(bgColor, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable(enabled = canActivate) { onClick() }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "$icon $name",
+                color = color.copy(alpha = alpha),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                style = TextStyle(fontFeatureSettings = "tnum")
+            )
+            Text(
+                text = if (isActive) "ACTIVE" else if (canActivate) "READY" else "OFFLINE",
+                color = if (isActive) color else if (canActivate) ProceduralRenderer.COLOR_WHITE else Color(0xFF607080),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.Monospace,
+                style = TextStyle(fontFeatureSettings = "tnum")
+            )
         }
     }
 }

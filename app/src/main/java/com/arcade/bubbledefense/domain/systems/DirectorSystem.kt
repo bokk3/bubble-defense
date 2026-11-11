@@ -40,6 +40,9 @@ class DirectorSystem(
     /** Accumulator for soft currency prism generation during harvest valleys. */
     var harvestPrismTimer: Float = 0f
     var prismCarrierTimer: Float = 0f
+    var armorCrystalTimer: Float = 0f
+    var solarFlareCooldown: Float = 35.0f
+    var meteoriteSpawnTimer: Float = 0f
 
     /** Advances PRNG state and returns a pseudo-random integer. */
     fun nextInt(): Int {
@@ -146,6 +149,66 @@ class DirectorSystem(
         ) {
             prismCarrierTimer = 0f
             spawnArchetype(GameConfig.TYPE_PRISM_CARRIER)
+        }
+
+        // 7. Periodic Green Armor Crystal Spawn (Tactical Nano-Repair Matrix)
+        armorCrystalTimer += dt
+        if (armorCrystalTimer >= GameConfig.ARMOR_CRYSTAL_SPAWN_INTERVAL &&
+            world.obstacles.count < world.obstacles.capacity
+        ) {
+            armorCrystalTimer = 0f
+            spawnArchetype(GameConfig.TYPE_ARMOR_CRYSTAL)
+        }
+
+        // 8. Dynamic Solar Flare & Invasive Meteorite Shower Pacing
+        world.timeSinceLastDamage += dt
+        updateSolarFlareCataclysm(dt, isCrunch)
+    }
+
+    private fun updateSolarFlareCataclysm(dt: Float, isCrunch: Boolean) {
+        if (world.solarFlareState == 0) {
+            // Idle cooldown
+            if (solarFlareCooldown > 0f) {
+                solarFlareCooldown -= dt
+            }
+            // Trigger when things are going good! (High combo streak or sustained full health)
+            val thingsGoingGood = (world.comboCount >= GameConfig.SOLAR_FLARE_TRIGGER_COMBO ||
+                (world.bubbleHp == GameConfig.BUBBLE_MAX_HP && world.timeSinceLastDamage >= 14f))
+            if (thingsGoingGood && solarFlareCooldown <= 0f && world.currentWave >= 1 && isCrunch) {
+                // Enter Phase 1: Warning Telegraph
+                world.solarFlareState = 1
+                world.solarFlareTimer = GameConfig.SOLAR_FLARE_WARNING_DURATION
+                world.solarFlareIntensity = 0f
+                world.waveAnnouncementTimer = 2.5f
+                world.droneDisruptedTimer = GameConfig.SOLAR_FLARE_DRONE_EMP_TIME
+                world.addTrauma(0.55f)
+            }
+        } else if (world.solarFlareState == 1) {
+            // Warning phase: coronal arches erupt, siren blares, EMP overload
+            world.solarFlareTimer -= dt
+            world.solarFlareIntensity = (1f - world.solarFlareTimer / GameConfig.SOLAR_FLARE_WARNING_DURATION).coerceIn(0f, 1f)
+            if (world.solarFlareTimer <= 0f) {
+                // Advance to Phase 2: Storm & Meteorite Cascade
+                world.solarFlareState = 2
+                world.solarFlareTimer = GameConfig.SOLAR_FLARE_STORM_DURATION
+                meteoriteSpawnTimer = 0.2f
+                world.addTrauma(0.80f)
+            }
+        } else if (world.solarFlareState == 2) {
+            // Storm phase: invasive meteorites rain down, solar ink drag active
+            world.solarFlareTimer -= dt
+            world.solarFlareIntensity = (world.solarFlareTimer / GameConfig.SOLAR_FLARE_STORM_DURATION).coerceIn(0f, 1f)
+            meteoriteSpawnTimer -= dt
+            if (meteoriteSpawnTimer <= 0f && world.obstacles.count < world.obstacles.capacity) {
+                meteoriteSpawnTimer = nextFloat(0.6f, 1.1f)
+                spawnArchetype(GameConfig.TYPE_METEORITE)
+            }
+            if (world.solarFlareTimer <= 0f) {
+                // Storm subsided
+                world.solarFlareState = 0
+                world.solarFlareIntensity = 0f
+                solarFlareCooldown = GameConfig.SOLAR_FLARE_MIN_INTERVAL
+            }
         }
     }
 
@@ -274,6 +337,31 @@ class DirectorSystem(
                     angularVelocity = nextFloat(-1.5f, 1.5f)
                 )
             }
+            GameConfig.TYPE_ARMOR_CRYSTAL -> {
+                val speed = nextFloat(GameConfig.ARMOR_CRYSTAL_MIN_SPEED, GameConfig.ARMOR_CRYSTAL_MAX_SPEED)
+                world.obstacles.spawn(
+                    posX = spawnX, posY = spawnY,
+                    velX = dirX * speed, velY = dirY * speed,
+                    colRadius = GameConfig.ARMOR_CRYSTAL_RADIUS,
+                    mass = GameConfig.ARMOR_CRYSTAL_MASS,
+                    colRestitution = GameConfig.ARMOR_CRYSTAL_RESTITUTION,
+                    obstacleType = GameConfig.TYPE_ARMOR_CRYSTAL,
+                    angularVelocity = nextFloat(-2f, 2f)
+                )
+            }
+            GameConfig.TYPE_METEORITE -> {
+                val speed = nextFloat(GameConfig.METEORITE_MIN_SPEED, GameConfig.METEORITE_MAX_SPEED)
+                world.obstacles.spawn(
+                    posX = spawnX, posY = spawnY,
+                    velX = dirX * speed, velY = dirY * speed,
+                    colRadius = GameConfig.METEORITE_RADIUS,
+                    mass = GameConfig.METEORITE_MASS,
+                    colRestitution = GameConfig.METEORITE_RESTITUTION,
+                    obstacleType = GameConfig.TYPE_METEORITE,
+                    angularVelocity = nextFloat(-3.5f, 3.5f)
+                )
+                addTelegraph(spawnX, type)
+            }
         }
     }
 
@@ -291,5 +379,8 @@ class DirectorSystem(
         rngState = if (seed != 0) seed else 1337
         harvestPrismTimer = 0f
         prismCarrierTimer = 0f
+        armorCrystalTimer = 0f
+        solarFlareCooldown = 35.0f
+        meteoriteSpawnTimer = 0f
     }
 }
