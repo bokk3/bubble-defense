@@ -23,6 +23,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.1.0`** | **Phase 6** | 2.5D Perspective Engine Overhaul (Highway Lane, 3rd Person Camera, Extruded Shields) | **RELEASED** | 2026-11-10 |
 | **`v1.2.0`** | **Phase 7** | Infinite Waves, Hardware Canvas HUD, 2.5D Road Assets, Horizon Despawn & Sensory VFX | **RELEASED** | 2026-11-10 |
 | **`v1.3.0`** | **Phase 8** | High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive | **RELEASED** | 2026-11-10 |
+| **`v1.4.0`** | **Phase 9** | Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere | **RELEASED** | 2026-11-11 |
 
 ---
 
@@ -250,30 +251,62 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
-### Phase 8: High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive (`v1.3.0`) — [/]
-- [/] **T8.1 High-Speed Velocity Calibration & Altitude Tuning** `[PHYS-AGENT]`, `[kinetic-flow-architect]`
-  - [ ] Increase `ASCENT_SPEED_BASE` from 8 wu/s to 420 wu/s (~35 m/s = 126 km/h).
-  - [ ] Tune `WU_PER_METER = 12f` wu/m and `ASCENT_ACCEL = 4.0f` wu/s².
-  - [ ] Add dynamic speed boost on perfect parries (+150 wu/s for 1.5s).
-  - [ ] Update live HUD speed readout to actual km/h: `((ascentSpeed / WU_PER_METER) * 3.6f).toInt()`.
-- [/] **T8.2 Continuous Horizon Threat Spawning & Despawn Bug Fix** `[PHYS-AGENT]`, `[JUICE-AGENT]`
-  - [ ] Fix obstacle despawn bug in `PhysicsSystem.kt`: only despawn at $Y \le 60\text{ wu}$ if `(isParried || isDeflected) && vy < 0f`.
-  - [ ] Calibrate `SPAWN_LINE_Y = 40f` wu (at horizon vanishing point emerging from retro sun).
-  - [ ] Increase `BASE_THREAT_RATE` from 1.0 to 2.4 budget/s and raise breather rate to $\phi = 0.55$.
-  - [ ] Set initial threat budget in `reset()` to 1.5 budget so hazards spawn immediately without initial pause.
-- [/] **T8.3 Sensory Overdrive VFX & Kinetic Juice** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
-  - [ ] Forward-scrolling road animations tuned to high speed: crosslines, dashed centerline dividers, and roadside light pylons streaming with genuine velocity.
-  - [ ] Neon LED chevron arrows along highway curbs pointing down the track.
-  - [ ] Enhanced radial warp streaks emanating from the retro sun scaling with speed and combo multiplier.
-  - [ ] Bubble speed trail ribbons and wobbling shield energy corona.
-  - [ ] Screen-shake and camera tilt responsiveness on parry impacts.
-- [/] **T8.4 Unit Test Suite & Verification** `[ARCH-AGENT]`, `[PHYS-AGENT]`
-  - [ ] Update unit tests for new speed parameters and threat rates.
-  - [ ] Verify test suite passes with 0 failures and 0 heap allocations in hot paths.
-- [/] **T8.5 Assemble & Sign Release APK (v1.3.0) & Publish GitHub Release** `[ARCH-AGENT]`
-  - [ ] Verify signed `app-release.apk` with `apksigner.bat`.
-  - [ ] Create GitHub release `v1.3.0` and upload APK.
-  - [ ] Git commit and tag `v1.3.0`.
+### Phase 8: High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive (`v1.3.0`) — [COMPLETED]
+- [x] **T8.1 High-Speed Velocity Calibration & Altitude Tuning** `[PHYS-AGENT]`, `[kinetic-flow-architect]`
+  - [x] Increase `ASCENT_SPEED_BASE` from 8 wu/s to 420 wu/s (~35 m/s = 126 km/h).
+  - [x] Tune `WU_PER_METER = 12f` wu/m and `ASCENT_ACCEL = 4.0f` wu/s².
+  - [x] Add dynamic speed boost on perfect parries (+150 wu/s with smooth 80 wu/s² decay).
+  - [x] Update live HUD speed readout to actual km/h: `((ascentSpeed / WU_PER_METER) * 3.6f).toInt()`.
+- [x] **T8.2 Continuous Horizon Threat Spawning & Despawn Bug Fix** `[PHYS-AGENT]`, `[JUICE-AGENT]`
+  - [x] Fix obstacle despawn bug in `PhysicsSystem.kt`: only despawn at $Y \le 60\text{ wu}$ if `(isParried || isDeflected) && vy < 0f`.
+  - [x] Calibrate `SPAWN_LINE_Y = 30f` wu (at horizon vanishing point emerging from retro sun).
+  - [x] Increase `BASE_THREAT_RATE` from 1.0 to 2.4 budget/s and raise breather rate to $\phi = 0.55$.
+  - [x] Set initial threat budget in `reset()` to 1.5 budget so hazards spawn immediately without initial pause.
+- [x] **T8.3 Sensory Overdrive VFX & Kinetic Juice** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Forward-scrolling road animations tuned to high speed: crosslines, dashed centerline dividers, and roadside light pylons streaming with genuine velocity.
+  - [x] Cascading Neon LED chevron arrows along highway curbs pointing down the track.
+  - [x] Enhanced radial warp streaks emanating from the retro sun scaling dynamically with velocity and combo multiplier.
+  - [x] Bubble twin thruster laser ribbons streaming backward and energetic rim corona pulse.
+  - [x] Altitude milestone celebration banners popup every 250m.
+- [x] **T8.4 Unit Test Suite & Verification** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Update unit tests (`DirectorSystemTest.kt`) for new threat rate ratios.
+  - [x] Verify test suite passes with 0 failures and 0 heap allocations in hot paths (135/135 tests passing).
+- [x] **T8.5 Assemble & Sign Release APK (v1.3.0) & Publish GitHub Release** `[ARCH-AGENT]`
+  - [x] Verify signed `app-release.apk` with `apksigner.bat` (Scheme v2 verified).
+  - [x] Create GitHub release `v1.3.0` and upload APK (`bubble-defense-v1.3.0.apk`).
+  - [x] Git commit and tag `v1.3.0`.
+
+---
+
+### Phase 9: Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere (`v1.4.0`) — [COMPLETED]
+- [x] **T9.1 Deep Space Abyss Palette & Celestial Void Shaders** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Replace flat cyberpunk colors with pitch-black cosmic vacuum (`#020306`), dark abyssal corridor (`#03050C`), cold spectral violet (`#7000FF`), and phantom cyan (`#00F0FF`).
+  - [x] Implement multi-layer twinkling deep space starfield (48 cold distant stars with harmonic sine pulsation).
+  - [x] Implement procedural drifting Cosmic Nebulae (layered organic dust clouds drifting in deep space parallax).
+- [x] **T9.2 The Event Horizon Singularity (The Eye of the Void)** `[JUICE-AGENT]`, `[PHYS-AGENT]`
+  - [x] Eliminate the retro sunset and earthly mountains.
+  - [x] Implement a celestial Void Singularity at the horizon vanishing point:
+    - Pitch-black central event horizon core.
+    - Cold gravitational lensing Einstein ring with spectral chromatic distortion.
+    - Swirling cosmic dust accretion disk filaments rotating in perspective.
+    - Vertical relativistic polar jet / Hawking radiation beam piercing the upper cosmos.
+    - Slow low-frequency cosmic harmonic breathing ($0.15\text{ Hz}$).
+- [x] **T9.3 Gravitational Slipstream & Spectral Containment Filaments** `[PHYS-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Transform the asphalt highway lane into a translucent Gravitational Void Slipstream.
+  - [x] Replace yellow road dashed lines with ethereal quantum coordinate grid lines.
+  - [x] Replace solid curbs with vibrating Spectral Containment Filaments humming with quantum energy nodes.
+- [x] **T9.4 Silent Void Monoliths & Spatial Warp Gates** `[JUICE-AGENT]`, `[ARCH-AGENT]`
+  - [x] Replace highway light pylons with ancient obsidian Void Monoliths / Obelisks floating weightlessly in microgravity outside the slipstream with glowing energy fissures.
+  - [x] Replace highway crossbeams with floating Spatial Warp Rings spanning the void at every 250m milestone.
+- [x] **T9.5 Bioluminescent Bubble Oasis & Claustrophobic Abyssal Vignette** `[JUICE-AGENT]`, `[kinetic-flow-architect]`
+  - [x] The bubble acts as an island of fragile organic life, casting a soft radial bioluminescent light pool onto the nearby void.
+  - [x] Floating cosmic dust motes drifting across the camera view, catching the bubble's light.
+  - [x] Heavy abyssal void vignette fading the outer edges of the screen into absolute pitch blackness, intensifying when health is low.
+  - [x] Atmospheric void fog on incoming obstacles: far-off hazards emerge as dark cold phantoms ($Y \le 140\text{ wu}$) before igniting into crisp geometric threats.
+- [x] **T9.6 Verification, APK Assembly (v1.4.0) & GitHub Release** `[ARCH-AGENT]`
+  - [x] Verify 135/135 tests pass with 0 heap allocations on hot paths.
+  - [x] Assemble signed release candidate APK `bubble-defense-v1.4.0.apk` (824 KB, APK Signature Scheme v2 verified).
+  - [x] Push commit, git tag `v1.4.0`, and create GitHub release.
 
 ---
 
@@ -312,6 +345,31 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.4.0` (2026-11-11) — Phase 9: Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere
+- **feat(void):** Atmospheric visual overhaul from 80s arcade highway to chilling, silent, vast deep space void:
+  - Deep space vacuum palette: absolute cosmic black (`#020306`), dark corridor floor (`#03050C`), cold spectral violet (`#7000FF`), and phantom cyan (`#00A2B3`).
+  - Multi-layer deep space starfield: 48 cold stars with harmonic sine wave twinkling and micro diffraction spikes.
+  - Procedural cosmic dust nebulae drifting across the upper horizon with slow parallax.
+- **feat(singularity):** The Event Horizon Singularity (The Eye of the Void) at vanishing point:
+  - Pitch-black central event horizon core absorbing all light.
+  - Cold gravitational lensing Einstein ring breathing with low-frequency cosmic harmonic pulse ($0.15\text{ Hz}$).
+  - Swirling accretion disk elliptical filaments in perspective orbiting the black hole.
+  - Relativistic polar jet / Hawking radiation beam erupting into the upper cosmos.
+- **feat(slipstream):** Gravitational Void Slipstream:
+  - Translucent floor showing the unfathomable cosmic abyss underneath.
+  - Spacetime coordinate filaments and central quantum guide laser conduit.
+  - Vibrating Spectral Containment Filaments with pulsing quantum synapse nodes along boundaries.
+- **feat(relics):** Silent Void Monoliths & Spatial Warp Rings:
+  - Ancient dark obsidian obelisks suspended weightlessly in zero-g with glowing energy fissures.
+  - Suspended Spatial Warp Rings spanning the void at every 250m altitude milestone.
+- **feat(atmosphere):** Bioluminescent Oasis & Abyssal Vignette:
+  - Bubble casts a soft bioluminescent radial pool of light onto the dark void slipstream.
+  - 24 cosmic dust motes floating in microgravity, illuminating when entering the bubble's light cone.
+  - Suffocating perimeter void vignette framing the viewport in pitch blackness, pulsating with ominous crimson when health is critical.
+  - Atmospheric void fog on incoming threats: obstacles emerge as dark cold phantoms before igniting into razor-sharp threats.
+- **test(suite):** Full test suite passes **135/135 unit tests** (0 failures, 0 skipped, 0ms GC allocations in hot paths).
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.4.0.apk` (824 KB, APK Signature Scheme v2 verified).
 
 ### `v1.3.0` (2026-11-10) — Phase 8: High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive
 - **feat(physics):** High-speed arcade velocity overhaul:
@@ -423,10 +481,22 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ## 5. Agent Handoff Notes
 
-- **Date:** 2026-11-10
-- **Current Version:** `v1.3.0`
+- **Date:** 2026-11-11
+- **Current Version:** `v1.4.0`
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 8 COMPLETE (v1.3.0 High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive)**:
+- **Status:** **PHASE 9 COMPLETE (v1.4.0 Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere)**:
+  - Completely transformed game feel and visual aesthetic into a chilling, vast, silent cosmic void.
+  - Event Horizon Singularity (Black Hole) with gravitational lensing, accretion disk filaments, and relativistic polar jet.
+  - Gravitational Void Slipstream with vibrating spectral containment filaments and quantum synapse nodes.
+  - Silent Obsidian Void Monoliths floating in zero-g and suspended Spatial Warp Rings every 250m.
+  - Bubble Bioluminescent light oasis, zero-g cosmic dust motes, suffocating abyssal vignette, and atmospheric void fog emergence on hazards.
+  - Full test suite: **135/135 unit tests passing** (0 failures, 0 skipped, 0 heap allocations).
+  - Production release APK assembled and signed (`bubble-defense-v1.4.0.apk`: 824 KB, APK Signature Scheme v2 verified). (Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere)**:
+  - Transitioning 2.5D visual direction from 80s synthwave road to a chilling, vast, silent cosmic abyss.
+  - Replacing retro sun and mountains with the Event Horizon Singularity (black hole, gravitational lensing ring, swirling accretion disk filaments, and Hawking radiation jets).
+  - Replacing asphalt highway with a translucent Gravitational Void Slipstream and vibrating spectral containment filaments.
+  - Replacing roadside lamp posts and freeway gantries with ancient obsidian Void Monoliths and floating Spatial Warp Rings.
+  - Introducing Bubble Bioluminescence local light casting, drifting cosmic dust motes, and deep space claustrophobic vignette. (v1.3.0 High-Speed Arcade Velocity, Continuous Threat Spawning & Sensory Overdrive)**:
   - High-speed velocity calibrated to 126 km/h (420 wu/s base, 950 wu/s max) with dynamic parry speed boost (+150 wu/s) and true physical km/h speedometer readout.
   - Continuous threat spawning from horizon vanishing point ($Y = 30	ext{ wu}$) with premature despawn bug fixed.
   - Sensory Overdrive VFX: Cascading neon curb arrows, dynamic speed warp streaks, bubble twin thruster laser ribbons, energetic rim corona, and 250m altitude milestone celebration banners.

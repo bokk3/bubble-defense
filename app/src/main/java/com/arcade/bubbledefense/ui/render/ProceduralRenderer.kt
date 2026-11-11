@@ -48,16 +48,20 @@ class ProceduralRenderer {
     companion object {
         private const val BUBBLE_VERTICES = 64
 
-        // Neon Cyberpunk Palette
-        val COLOR_BG = Color(0xFF06080E)
-        val COLOR_LANE_BG = Color(0xFF090D18)
-        val COLOR_CYAN = Color(0xFF00F0FF)
-        val COLOR_MAGENTA = Color(0xFFFF0055)
-        val COLOR_AMBER = Color(0xFFFFB800)
-        val COLOR_RED = Color(0xFFFF3300)
-        val COLOR_GREEN = Color(0xFF00FF99)
-        val COLOR_WHITE = Color(0xFFFFFFFF)
-        val COLOR_SHADOW = Color(0x66000000)
+        // Eerie Deep Space Void Palette
+        val COLOR_BG = Color(0xFF020306)              // Pure abyssal void
+        val COLOR_LANE_BG = Color(0xFF03050C)         // Deep gravitational slipstream
+        val COLOR_CYAN = Color(0xFF00F0FF)            // Fragile bioluminescence / laser core
+        val COLOR_PHANTOM_CYAN = Color(0xFF00A2B3)    // Subdued cold phantom light
+        val COLOR_MAGENTA = Color(0xFFFF0055)         // Threat highlight
+        val COLOR_VIOLET = Color(0xFF7000FF)          // Cold cosmic void ultraviolet
+        val COLOR_DARK_VIOLET = Color(0xFF240046)     // Deep accretion dust
+        val COLOR_AMBER = Color(0xFFFFB800)           // Dying star glow / warning
+        val COLOR_RED = Color(0xFFFF2200)             // Low health danger
+        val COLOR_GREEN = Color(0xFF00FF99)           // Soft currency prism
+        val COLOR_WHITE = Color(0xFFFFFFFF)           // Specular highlight / star core
+        val COLOR_OBSIDIAN = Color(0xFF080C14)        // Ancient monolithic matter
+        val COLOR_SHADOW = Color(0x99000000)          // Deep void occlusion shadow
 
         // Pre-allocated text strings
         private val TEXT_STRINGS = arrayOf(
@@ -93,6 +97,8 @@ class ProceduralRenderer {
     private val obstaclePath = Path()
     private val scratchPath = Path()
     private val highwayPath = Path()
+    private val nebulaPath = Path()
+    private val monolithPath = Path()
 
     // Reusable Pre-Allocated Strokes
     private val strokeGlowWide = Stroke(width = 16f, cap = StrokeCap.Round)
@@ -133,7 +139,6 @@ class ProceduralRenderer {
         textAlign = AndroidPaint.Align.CENTER
     }
 
-    private val mountainPath = Path()
 
     /** Active equipped procedural shield cosmetic skin. */
     var activeShieldSkin: ShieldSkin = ShieldSkin.CYBER_CYAN
@@ -153,26 +158,26 @@ class ProceduralRenderer {
         // 1. Draw Deep Cyberpunk Void Background
         drawScope.drawRect(COLOR_BG)
 
-        // 2. Draw 2.5D Synthwave Sky, Mountains & Retro Sun
+        // 2. Draw Deep Space Cosmic Void, Nebulae & Event Horizon Singularity
         drawSkyAndHorizon(drawScope, world, scaler)
 
-        // 3. Draw 2.5D Highway Lane (Road surface, curbs, scrolling velocity crosslines)
-        drawHighwayLane(drawScope, world, scaler)
+        // 3. Draw Gravitational Void Slipstream (Translucent corridor, spacetime filaments, spectral containment)
+        drawVoidSlipstream(drawScope, world, scaler)
 
-        // 4. Draw Roadside Assets (Neon Light Pylons & Overhead Milestone Gantries)
+        // 4. Draw Silent Void Relics (Monoliths & Suspended Spatial Warp Rings)
         drawRoadsideAssets(drawScope, world, scaler)
 
-        // 5. Draw Active Particles & Sensory Juice VFX (Shockwaves, Warp Streaks)
+        // 5. Draw Active Particles & Sensory Juice VFX (Shockwaves, Warp Streaks, Space Dust, Abyssal Vignette)
         drawSensoryJuiceVFX(drawScope, world, scaler)
         drawParticles(drawScope, world, scaler)
 
         // 6. Draw Extruded 3D Neon Energy Walls
         drawShieldSegments(drawScope, world, scaler)
 
-        // 7. Draw 3D Defense Bubble with Soft-Body Harmonic Wobble & Inclined Ink Ring
+        // 7. Draw 3D Defense Bubble with Bioluminescent Local Light Oasis, Wobble & Ink Ring
         drawBubble(drawScope, world, scaler)
 
-        // 8. Draw Depth-Sorted Incoming Obstacles (3D Geometry & Shadows)
+        // 8. Draw Depth-Sorted Incoming Obstacles with Atmospheric Void Fog
         drawObstacles(drawScope, world, scaler)
 
         // 9. Draw 3D Threat Telegraph Warning Lasers & Chevrons
@@ -186,7 +191,7 @@ class ProceduralRenderer {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // 2.5D Synthwave Sky, Mountains & Retro Sun
+    // Deep Space Cosmic Void, Nebulae & Event Horizon Singularity
     // ---------------------------------------------------------------------------------------------
 
     private fun drawSkyAndHorizon(
@@ -196,119 +201,184 @@ class ProceduralRenderer {
     ) {
         val horizonY = scaler.camera.vanishingPointY
         val screenW = scaler.screenWidthPx
+        val screenH = scaler.screenHeightPx
+        val time = world.gameTime
 
-        // Far Starfield in upper sky (y <= horizonY)
-        val starCount = 36
-        val scrollX = (world.altitudeMeters * 2f) % screenW
+        // 1. Distant Organic Cosmic Nebulae (Floating in deep space void)
+        drawDeepSpaceNebulae(drawScope, horizonY, screenW, time)
+
+        // 2. Multi-Layer Deep Space Starfield (Cold, Twinkling)
+        val starCount = 48
+        val scrollX = (world.altitudeMeters * 0.8f) % screenW
 
         for (i in 0 until starCount) {
-            val seedX = ((i * 47 + 23) % screenW.toInt()).toFloat()
-            val seedY = ((i * 29 + 17) % horizonY.toInt()).toFloat()
+            val seedX = ((i * 53 + 17) % screenW.toInt()).toFloat()
+            // Distribute stars both above horizon and in peripheral abyss
+            val seedY = ((i * 37 + 11) % (screenH * 0.65f).toInt()).toFloat()
             val sx = (seedX + scrollX) % screenW
-            val brightness = 0.2f + ((i % 5) * 0.15f)
-            val radius = if (i % 6 == 0) 2.0f else 1.2f
+
+            // Cold harmonic twinkle
+            val twinkle = 0.5f + 0.5f * sin(time * 2.4f + i * 1.6f)
+            val brightness = (0.15f + ((i % 5) * 0.12f) + twinkle * 0.28f).coerceIn(0.10f, 0.90f)
+            val radius = if (i % 8 == 0) 1.8f else if (i % 3 == 0) 1.2f else 0.8f
+
+            val starColor = when (i % 4) {
+                0 -> COLOR_WHITE
+                1 -> COLOR_CYAN
+                2 -> COLOR_VIOLET
+                else -> COLOR_WHITE
+            }
 
             drawScope.drawCircle(
-                color = COLOR_WHITE.copy(alpha = brightness),
+                color = starColor.copy(alpha = brightness),
                 radius = radius,
                 center = Offset(sx, seedY)
             )
-        }
 
-        // Synthwave Retro Sun centered at horizon
-        val sunRadius = min(screenW * 0.15f, 70f)
-        val sunCx = screenW * 0.5f
-        val sunCy = horizonY - 8f
-
-        // Outer glow
-        drawScope.drawCircle(
-            color = COLOR_MAGENTA.copy(alpha = 0.22f),
-            radius = sunRadius * 1.35f,
-            center = Offset(sunCx, sunCy)
-        )
-        // Mid aura
-        drawScope.drawCircle(
-            color = COLOR_AMBER.copy(alpha = 0.45f),
-            radius = sunRadius,
-            center = Offset(sunCx, sunCy)
-        )
-        // Sun core
-        drawScope.drawCircle(
-            color = COLOR_AMBER,
-            radius = sunRadius * 0.85f,
-            center = Offset(sunCx, sunCy)
-        )
-
-        // Horizontal dark scanlines cutting through the retro sun
-        var scanlineY = sunCy - sunRadius * 0.25f
-        var scanlineH = 1.5f
-        while (scanlineY <= horizonY) {
-            val dy = scanlineY - sunCy
-            val halfWSq = sunRadius * sunRadius - dy * dy
-            if (halfWSq > 4f) {
-                val halfW = kotlin.math.sqrt(halfWSq)
+            // Micro diffraction spike for prominent stars
+            if (i % 12 == 0 && brightness > 0.6f) {
+                val spikeLen = 5f * brightness
                 drawScope.drawLine(
-                    color = COLOR_BG,
-                    start = Offset(sunCx - halfW - 2f, scanlineY),
-                    end = Offset(sunCx + halfW + 2f, scanlineY),
-                    strokeWidth = scanlineH
+                    color = starColor.copy(alpha = brightness * 0.45f),
+                    start = Offset(sx - spikeLen, seedY),
+                    end = Offset(sx + spikeLen, seedY),
+                    strokeWidth = 1f
+                )
+                drawScope.drawLine(
+                    color = starColor.copy(alpha = brightness * 0.45f),
+                    start = Offset(sx, seedY - spikeLen),
+                    end = Offset(sx, seedY + spikeLen),
+                    strokeWidth = 1f
                 )
             }
-            scanlineH += 0.7f
-            scanlineY += scanlineH + 3.2f
         }
 
-        // Distant Jagged Mountains flanking the horizon
-        drawMountains(drawScope, horizonY, screenW)
+        // 3. The Event Horizon Singularity (The Eye of the Void)
+        val singularityRadius = min(screenW * 0.12f, 52f)
+        val sunCx = screenW * 0.5f
+        val sunCy = horizonY - 4f
 
-        // Horizon Laser Glow Line
+        // Cosmic harmonic breathing (0.15 Hz - slow, terrifying pulse of the abyss)
+        val breathe = 0.5f + 0.5f * sin(time * 0.94f)
+
+        // Relativistic Polar Jet (Hawking Radiation beam erupting straight into upper deep space)
         drawScope.drawLine(
-            color = COLOR_MAGENTA.copy(alpha = 0.25f),
-            start = Offset(0f, horizonY - 1f),
-            end = Offset(screenW, horizonY - 1f),
+            color = COLOR_VIOLET.copy(alpha = 0.20f + 0.08f * breathe),
+            start = Offset(sunCx, sunCy - singularityRadius),
+            end = Offset(sunCx, 0f),
             strokeWidth = 6f
+        )
+        drawScope.drawLine(
+            color = COLOR_CYAN.copy(alpha = 0.40f + 0.15f * breathe),
+            start = Offset(sunCx, sunCy - singularityRadius),
+            end = Offset(sunCx, horizonY * 0.35f),
+            strokeWidth = 1.5f
+        )
+
+        // Gravitational Lensing Outer Halo (Einstein Ring)
+        val haloRadius = singularityRadius * (1.60f + 0.10f * breathe)
+        drawScope.drawCircle(
+            color = COLOR_VIOLET.copy(alpha = 0.16f + 0.08f * breathe),
+            radius = haloRadius,
+            center = Offset(sunCx, sunCy)
+        )
+        drawScope.drawCircle(
+            color = COLOR_CYAN.copy(alpha = 0.30f),
+            radius = singularityRadius * 1.12f,
+            center = Offset(sunCx, sunCy),
+            style = strokeCoreThin
+        )
+
+        // Swirling Cosmic Accretion Disk (Perspective Ellipse orbiting the black hole)
+        val diskW = singularityRadius * 2.8f
+        val diskH = singularityRadius * 0.75f
+
+        drawScope.drawOval(
+            color = COLOR_DARK_VIOLET.copy(alpha = 0.35f),
+            topLeft = Offset(sunCx - diskW * 0.5f, sunCy - diskH * 0.5f),
+            size = Size(diskW, diskH),
+            style = strokeGlowWide
+        )
+        drawScope.drawOval(
+            color = COLOR_VIOLET.copy(alpha = 0.50f),
+            topLeft = Offset(sunCx - diskW * 0.45f, sunCy - diskH * 0.45f),
+            size = Size(diskW * 0.9f, diskH * 0.9f),
+            style = strokeRing
+        )
+        drawScope.drawOval(
+            color = COLOR_CYAN.copy(alpha = 0.35f),
+            topLeft = Offset(sunCx - diskW * 0.35f, sunCy - diskH * 0.35f),
+            size = Size(diskW * 0.7f, diskH * 0.7f),
+            style = strokeWhiteCore
+        )
+
+        // Pitch-Black Event Horizon Core (Total light absorption)
+        drawScope.drawCircle(
+            color = Color(0xFF000000),
+            radius = singularityRadius,
+            center = Offset(sunCx, sunCy)
+        )
+
+        // Event Horizon Perimeter Glint
+        drawScope.drawCircle(
+            color = COLOR_VIOLET.copy(alpha = 0.70f),
+            radius = singularityRadius,
+            center = Offset(sunCx, sunCy),
+            style = strokeWhiteCore
+        )
+
+        // Horizon Void Boundary Laser Line
+        drawScope.drawLine(
+            color = COLOR_VIOLET.copy(alpha = 0.30f),
+            start = Offset(0f, horizonY),
+            end = Offset(screenW, horizonY),
+            strokeWidth = 3f
         )
         drawScope.drawLine(
             color = COLOR_CYAN.copy(alpha = 0.55f),
             start = Offset(0f, horizonY),
             end = Offset(screenW, horizonY),
-            strokeWidth = 2f
+            strokeWidth = 1f
         )
     }
 
-    private fun drawMountains(drawScope: DrawScope, horizonY: Float, screenW: Float) {
-        // Left Ridge
-        mountainPath.rewind()
-        mountainPath.moveTo(0f, horizonY)
-        mountainPath.lineTo(0f, horizonY - 35f)
-        mountainPath.lineTo(screenW * 0.08f, horizonY - 20f)
-        mountainPath.lineTo(screenW * 0.16f, horizonY - 50f)
-        mountainPath.lineTo(screenW * 0.24f, horizonY - 25f)
-        mountainPath.lineTo(screenW * 0.32f, horizonY - 12f)
-        mountainPath.lineTo(screenW * 0.38f, horizonY)
-        mountainPath.close()
-        drawScope.drawPath(mountainPath, color = Color(0xFF0A0F20), style = Fill)
-        drawScope.drawPath(mountainPath, color = COLOR_MAGENTA.copy(alpha = 0.40f), style = strokeWhiteCore)
+    private fun drawDeepSpaceNebulae(
+        drawScope: DrawScope,
+        horizonY: Float,
+        screenW: Float,
+        time: Float
+    ) {
+        // Left Cosmic Dust Nebula
+        val nebDrift = sin(time * 0.15f) * 15f
+        nebulaPath.rewind()
+        nebulaPath.moveTo(0f, horizonY)
+        nebulaPath.lineTo(0f, horizonY - 90f + nebDrift)
+        nebulaPath.cubicTo(
+            screenW * 0.12f, horizonY - 140f + nebDrift,
+            screenW * 0.28f, horizonY - 60f - nebDrift,
+            screenW * 0.42f, horizonY
+        )
+        nebulaPath.close()
+        drawScope.drawPath(nebulaPath, color = Color(0x331E0538), style = Fill)
 
-        // Right Ridge
-        mountainPath.rewind()
-        mountainPath.moveTo(screenW * 0.62f, horizonY)
-        mountainPath.lineTo(screenW * 0.68f, horizonY - 16f)
-        mountainPath.lineTo(screenW * 0.76f, horizonY - 45f)
-        mountainPath.lineTo(screenW * 0.84f, horizonY - 22f)
-        mountainPath.lineTo(screenW * 0.92f, horizonY - 38f)
-        mountainPath.lineTo(screenW, horizonY - 25f)
-        mountainPath.lineTo(screenW, horizonY)
-        mountainPath.close()
-        drawScope.drawPath(mountainPath, color = Color(0xFF0A0F20), style = Fill)
-        drawScope.drawPath(mountainPath, color = COLOR_CYAN.copy(alpha = 0.40f), style = strokeWhiteCore)
+        // Right Cosmic Dust Nebula
+        nebulaPath.rewind()
+        nebulaPath.moveTo(screenW * 0.58f, horizonY)
+        nebulaPath.cubicTo(
+            screenW * 0.70f, horizonY - 110f - nebDrift,
+            screenW * 0.88f, horizonY - 150f + nebDrift,
+            screenW, horizonY - 70f
+        )
+        nebulaPath.lineTo(screenW, horizonY)
+        nebulaPath.close()
+        drawScope.drawPath(nebulaPath, color = Color(0x280D1F38), style = Fill)
     }
 
     // ---------------------------------------------------------------------------------------------
-    // 2.5D Highway Lane Grid & Converging Curbs
+    // Gravitational Void Slipstream & Spectral Containment Filaments
     // ---------------------------------------------------------------------------------------------
 
-    private fun drawHighwayLane(
+    private fun drawVoidSlipstream(
         drawScope: DrawScope,
         world: GameWorld,
         scaler: ViewportScaler
@@ -316,8 +386,9 @@ class ProceduralRenderer {
         val cameraY = scaler.camera.cameraY
         val leftCurbX = GameConfig.LANE_LEFT_CURB_X
         val rightCurbX = GameConfig.LANE_RIGHT_CURB_X
+        val time = world.gameTime
 
-        // 1. Road Surface Trapezoid (Ground plane between curbs)
+        // 1. Slipstream Surface (Translucent dark corridor over the abyss)
         val topY = 0f
         val botY = cameraY
 
@@ -340,7 +411,7 @@ class ProceduralRenderer {
 
         drawScope.drawPath(highwayPath, color = COLOR_LANE_BG, style = Fill)
 
-        // 2. Forward-Scrolling Velocity Crosslines (1/Z perspective compression)
+        // 2. Spacetime Coordinate Filaments (Faint horizontal crosslines)
         val crosslineSpacing = GameConfig.FLOOR_CROSSLINE_SPACING_WU
         val scrollOffset = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % crosslineSpacing
 
@@ -351,11 +422,11 @@ class ProceduralRenderer {
             val cly = scaler.worldLaneToScreenY(lineY)
             val depthScale = scaler.scaleLaneDepth(lineY)
 
-            val lineAlpha = (depthScale * 0.25f).coerceIn(0.04f, 0.35f)
-            val strokeW = (2.5f * depthScale).coerceAtLeast(1f)
+            val lineAlpha = (depthScale * 0.16f).coerceIn(0.02f, 0.20f)
+            val strokeW = (1.5f * depthScale).coerceAtLeast(0.8f)
 
             drawScope.drawLine(
-                color = COLOR_CYAN.copy(alpha = lineAlpha),
+                color = COLOR_VIOLET.copy(alpha = lineAlpha),
                 start = Offset(clx, cly),
                 end = Offset(crx, cly),
                 strokeWidth = strokeW
@@ -363,110 +434,99 @@ class ProceduralRenderer {
             lineY += crosslineSpacing
         }
 
-        // 3. Center Dashed Line Dividers (Streaming down highway centerline)
-        val dashPeriod = 80f
-        val dashScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % dashPeriod
+        // 3. Center Quantum Conduit (Ethereal guide laser humming down center)
+        val centerPulse = 0.12f + 0.08f * sin(time * 6f)
+        val p1x = scaler.worldLaneToScreenX(GameConfig.BUBBLE_CENTER_X, 0f)
+        val p1y = scaler.worldLaneToScreenY(0f)
+        val p2x = scaler.worldLaneToScreenX(GameConfig.BUBBLE_CENTER_X, cameraY)
+        val p2y = scaler.worldLaneToScreenY(cameraY)
 
-        var dashY = dashScroll
-        while (dashY <= cameraY) {
-            val dashEnd = min(cameraY, dashY + 40f)
-            val p1x = scaler.worldLaneToScreenX(GameConfig.BUBBLE_CENTER_X, dashY)
-            val p1y = scaler.worldLaneToScreenY(dashY)
-            val p2x = scaler.worldLaneToScreenX(GameConfig.BUBBLE_CENTER_X, dashEnd)
-            val p2y = scaler.worldLaneToScreenY(dashEnd)
-            val depthScale = scaler.scaleLaneDepth(dashY)
-
-            val dashAlpha = (depthScale * 0.45f).coerceIn(0.08f, 0.55f)
-            val strokeW = (3f * depthScale).coerceAtLeast(1.5f)
-
-            drawScope.drawLine(
-                color = COLOR_AMBER.copy(alpha = dashAlpha),
-                start = Offset(p1x, p1y),
-                end = Offset(p2x, p2y),
-                strokeWidth = strokeW
-            )
-            dashY += dashPeriod
-        }
-
-        // 4. Left and Right Converging Neon Curbs (Multi-pass glow)
-        // Left Curb
         drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = 0.20f),
+            color = COLOR_CYAN.copy(alpha = centerPulse * 0.5f),
+            start = Offset(p1x, p1y),
+            end = Offset(p2x, p2y),
+            strokeWidth = 6f
+        )
+        drawScope.drawLine(
+            color = COLOR_CYAN.copy(alpha = centerPulse),
+            start = Offset(p1x, p1y),
+            end = Offset(p2x, p2y),
+            strokeWidth = 1.2f
+        )
+
+        // 4. Spectral Containment Filaments (Left & Right Corridor Boundaries)
+        val vibL = sin(time * 18f) * 1.2f
+        val vibR = cos(time * 18f) * 1.2f
+
+        // Left Spectral Filament (Violet wide glow + Cyan core)
+        drawScope.drawLine(
+            color = COLOR_VIOLET.copy(alpha = 0.25f),
             start = Offset(tlx, tly),
-            end = Offset(blx, bly),
-            strokeWidth = 12f,
+            end = Offset(blx + vibL, bly),
+            strokeWidth = 10f,
             cap = StrokeCap.Round
         )
         drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = 0.85f),
+            color = COLOR_CYAN.copy(alpha = 0.80f),
             start = Offset(tlx, tly),
-            end = Offset(blx, bly),
-            strokeWidth = 4f,
+            end = Offset(blx + vibL, bly),
+            strokeWidth = 2.5f,
             cap = StrokeCap.Round
         )
         drawScope.drawLine(
-            color = COLOR_WHITE,
+            color = COLOR_WHITE.copy(alpha = 0.90f),
             start = Offset(tlx, tly),
-            end = Offset(blx, bly),
-            strokeWidth = 1.5f,
+            end = Offset(blx + vibL, bly),
+            strokeWidth = 1f,
             cap = StrokeCap.Round
         )
 
-        // Right Curb
+        // Right Spectral Filament
         drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = 0.20f),
+            color = COLOR_VIOLET.copy(alpha = 0.25f),
             start = Offset(trx, try_),
-            end = Offset(brx, bry),
-            strokeWidth = 12f,
-            cap = StrokeCap.Round
-        )
-        drawScope.drawLine(
-            color = COLOR_CYAN.copy(alpha = 0.85f),
-            start = Offset(trx, try_),
-            end = Offset(brx, bry),
-            strokeWidth = 4f,
+            end = Offset(brx + vibR, bry),
+            strokeWidth = 10f,
             cap = StrokeCap.Round
         )
         drawScope.drawLine(
-            color = COLOR_WHITE,
+            color = COLOR_CYAN.copy(alpha = 0.80f),
             start = Offset(trx, try_),
-            end = Offset(brx, bry),
-            strokeWidth = 1.5f,
+            end = Offset(brx + vibR, bry),
+            strokeWidth = 2.5f,
+            cap = StrokeCap.Round
+        )
+        drawScope.drawLine(
+            color = COLOR_WHITE.copy(alpha = 0.90f),
+            start = Offset(trx, try_),
+            end = Offset(brx + vibR, bry),
+            strokeWidth = 1f,
             cap = StrokeCap.Round
         )
 
-        // 5. Cascading Neon Curb Arrows (High-Speed Runway Guidance)
-        val arrowPeriod = 75f
-        val arrowScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % arrowPeriod
-        var arrowY = arrowScroll
-        while (arrowY <= cameraY) {
-            val depthScale = scaler.scaleLaneDepth(arrowY)
-            val arrowAlpha = (depthScale * 0.65f).coerceIn(0.08f, 0.75f)
-            val strokeW = (2f * depthScale).coerceAtLeast(1f)
+        // 5. Quantum Containment Nodes (Pulsing Synapses along boundaries)
+        val nodePeriod = 90f
+        val nodeScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % nodePeriod
+        var nodeY = nodeScroll
+        while (nodeY <= cameraY) {
+            val depthScale = scaler.scaleLaneDepth(nodeY)
+            val nodeAlpha = (depthScale * 0.70f).coerceIn(0.10f, 0.85f)
+            val nodeR = (3f * depthScale).coerceAtLeast(1.2f)
 
-            // Left Curb Chevron pointing forward into horizon
-            val lApexX = scaler.worldLaneToScreenX(leftCurbX, arrowY)
-            val lApexY = scaler.worldLaneToScreenY(arrowY)
-            val lBase1X = scaler.worldLaneToScreenX(leftCurbX - 16f, arrowY + 18f)
-            val lBase1Y = scaler.worldLaneToScreenY(arrowY + 18f)
-            val lBase2X = scaler.worldLaneToScreenX(leftCurbX + 16f, arrowY + 18f)
-            val lBase2Y = scaler.worldLaneToScreenY(arrowY + 18f)
+            val nlx = scaler.worldLaneToScreenX(leftCurbX, nodeY)
+            val nly = scaler.worldLaneToScreenY(nodeY)
+            val nrx = scaler.worldLaneToScreenX(rightCurbX, nodeY)
+            val nry = scaler.worldLaneToScreenY(nodeY)
 
-            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(lBase1X, lBase1Y), Offset(lApexX, lApexY), strokeWidth = strokeW, cap = StrokeCap.Round)
-            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(lApexX, lApexY), Offset(lBase2X, lBase2Y), strokeWidth = strokeW, cap = StrokeCap.Round)
+            // Left Node
+            drawScope.drawCircle(COLOR_CYAN.copy(alpha = nodeAlpha * 0.4f), radius = nodeR * 2.2f, center = Offset(nlx, nly))
+            drawScope.drawCircle(COLOR_WHITE.copy(alpha = nodeAlpha), radius = nodeR, center = Offset(nlx, nly))
 
-            // Right Curb Chevron pointing forward into horizon
-            val rApexX = scaler.worldLaneToScreenX(rightCurbX, arrowY)
-            val rApexY = scaler.worldLaneToScreenY(arrowY)
-            val rBase1X = scaler.worldLaneToScreenX(rightCurbX - 16f, arrowY + 18f)
-            val rBase1Y = scaler.worldLaneToScreenY(arrowY + 18f)
-            val rBase2X = scaler.worldLaneToScreenX(rightCurbX + 16f, arrowY + 18f)
-            val rBase2Y = scaler.worldLaneToScreenY(arrowY + 18f)
+            // Right Node
+            drawScope.drawCircle(COLOR_CYAN.copy(alpha = nodeAlpha * 0.4f), radius = nodeR * 2.2f, center = Offset(nrx, nry))
+            drawScope.drawCircle(COLOR_WHITE.copy(alpha = nodeAlpha), radius = nodeR, center = Offset(nrx, nry))
 
-            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(rBase1X, rBase1Y), Offset(rApexX, rApexY), strokeWidth = strokeW, cap = StrokeCap.Round)
-            drawScope.drawLine(COLOR_CYAN.copy(alpha = arrowAlpha), Offset(rApexX, rApexY), Offset(rBase2X, rBase2Y), strokeWidth = strokeW, cap = StrokeCap.Round)
-
-            arrowY += arrowPeriod
+            nodeY += nodePeriod
         }
     }
 
@@ -667,6 +727,14 @@ class ProceduralRenderer {
         val sby = scaler.worldLaneToScreenY(world.bubbleY)
         val sbr = scaler.scaleLaneDistance(world.bubbleRadius, world.bubbleY)
         val time = world.gameTime
+
+        // 0. Bioluminescent Local Light Oasis (Illuminating the nearby void)
+        val lightR = sbr * 2.5f
+        drawScope.drawOval(
+            color = COLOR_CYAN.copy(alpha = 0.09f),
+            topLeft = Offset(sbx - lightR, sby - lightR * 0.40f),
+            size = Size(lightR * 2f, lightR * 0.80f)
+        )
 
         // 1. Ground Drop-Shadow on Highway Surface
         drawScope.drawOval(
@@ -876,6 +944,8 @@ class ProceduralRenderer {
             val oy = scaler.worldLaneToScreenY(wy)
             val r = scaler.scaleLaneDistance(world.obstacles.radius[i], wy)
             val depthScale = scaler.scaleLaneDepth(wy)
+            // Atmospheric Void Fog: distant threats emerging from the horizon are spectral silhouettes
+            val voidFogAlpha = ((wy - 20f) / 100f).coerceIn(0.15f, 1f)
 
             val type = world.obstacles.type[i]
             val vx = world.obstacles.vx[i]
@@ -886,17 +956,17 @@ class ProceduralRenderer {
 
             // Ground Drop-Shadow on Highway
             drawScope.drawOval(
-                color = COLOR_SHADOW.copy(alpha = (0.35f * depthScale).coerceIn(0.10f, 0.45f)),
+                color = COLOR_SHADOW.copy(alpha = (0.35f * depthScale * voidFogAlpha).coerceIn(0.08f, 0.45f)),
                 topLeft = Offset(ox - r * 0.85f, oy + r * 0.40f),
                 size = Size(r * 1.7f, r * 0.45f)
             )
 
             when (type) {
-                GameConfig.TYPE_DRIFTER -> drawDrifter3D(drawScope, ox, oy, r, depthScale, isParried)
-                GameConfig.TYPE_NEEDLE -> drawNeedle3D(drawScope, ox, oy, r, vx, vy, depthScale, isParried)
-                GameConfig.TYPE_CRUSHER -> drawCrusher3D(drawScope, ox, oy, r, angle, depthScale, isParried)
-                GameConfig.TYPE_SPLITTER -> drawSplitter3D(drawScope, ox, oy, r, angle, depthScale, isParried)
-                GameConfig.TYPE_SHARD -> drawShard3D(drawScope, ox, oy, r, angle, depthScale, isParried)
+                GameConfig.TYPE_DRIFTER -> drawDrifter3D(drawScope, ox, oy, r, depthScale, isParried, voidFogAlpha)
+                GameConfig.TYPE_NEEDLE -> drawNeedle3D(drawScope, ox, oy, r, vx, vy, depthScale, isParried, voidFogAlpha)
+                GameConfig.TYPE_CRUSHER -> drawCrusher3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
+                GameConfig.TYPE_SPLITTER -> drawSplitter3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
+                GameConfig.TYPE_SHARD -> drawShard3D(drawScope, ox, oy, r, angle, depthScale, isParried, voidFogAlpha)
             }
         }
     }
@@ -907,20 +977,21 @@ class ProceduralRenderer {
         cy: Float,
         r: Float,
         depthScale: Float,
-        isParried: Boolean
+        isParried: Boolean,
+        voidFogAlpha: Float
     ) {
         val baseColor = if (isParried) COLOR_CYAN else COLOR_MAGENTA
         val center = Offset(cx, cy)
 
         // Outer glow
-        drawScope.drawCircle(baseColor.copy(alpha = 0.18f), radius = r + 6f * depthScale, center = center)
-        // Main body fill
-        drawScope.drawCircle(baseColor.copy(alpha = 0.35f), radius = r, center = center, style = Fill)
+        drawScope.drawCircle(baseColor.copy(alpha = 0.18f * voidFogAlpha), radius = r + 6f * depthScale, center = center)
+        // Main body fill (Dark obsidian void core with colored aura)
+        drawScope.drawCircle(baseColor.copy(alpha = 0.35f * voidFogAlpha), radius = r, center = center, style = Fill)
         // Perimeter
-        drawScope.drawCircle(baseColor, radius = r, center = center, style = strokeCoreThin)
+        drawScope.drawCircle(baseColor.copy(alpha = voidFogAlpha), radius = r, center = center, style = strokeCoreThin)
         // 3D Specular Highlight
         drawScope.drawCircle(
-            color = COLOR_WHITE.copy(alpha = 0.50f),
+            color = COLOR_WHITE.copy(alpha = 0.50f * voidFogAlpha),
             radius = r * 0.25f,
             center = Offset(cx - r * 0.35f, cy - r * 0.35f)
         )
@@ -934,7 +1005,8 @@ class ProceduralRenderer {
         vx: Float,
         vy: Float,
         depthScale: Float,
-        isParried: Boolean
+        isParried: Boolean,
+        voidFogAlpha: Float
     ) {
         val speedSq = vx * vx + vy * vy
         val heading = if (speedSq > 1f) atan2(vy, vx) else (PI.toFloat() * 0.5f)
@@ -946,7 +1018,7 @@ class ProceduralRenderer {
         val tailX = cx - cos(heading) * (length * 1.5f)
         val tailY = cy - sin(heading) * (length * 1.5f)
         drawScope.drawLine(
-            color = baseColor.copy(alpha = 0.35f),
+            color = baseColor.copy(alpha = 0.35f * voidFogAlpha),
             start = Offset(cx, cy),
             end = Offset(tailX, tailY),
             strokeWidth = (2.5f * depthScale).coerceAtLeast(1f)
@@ -973,9 +1045,9 @@ class ProceduralRenderer {
         obstaclePath.lineTo(rightX, rightY)
         obstaclePath.close()
 
-        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.25f), style = strokeGlowMid)
-        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.55f), style = Fill)
-        drawScope.drawPath(obstaclePath, color = COLOR_WHITE, style = strokeWhiteCore)
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.25f * voidFogAlpha), style = strokeGlowMid)
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.55f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(obstaclePath, color = COLOR_WHITE.copy(alpha = voidFogAlpha), style = strokeWhiteCore)
     }
 
     private fun drawCrusher3D(
@@ -985,7 +1057,8 @@ class ProceduralRenderer {
         r: Float,
         angle: Float,
         depthScale: Float,
-        isParried: Boolean
+        isParried: Boolean,
+        voidFogAlpha: Float
     ) {
         val baseColor = if (isParried) COLOR_CYAN else COLOR_RED
         val sides = 6
@@ -1002,7 +1075,7 @@ class ProceduralRenderer {
         }
         obstaclePath.close()
 
-        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.20f), style = Fill)
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.20f * voidFogAlpha), style = Fill)
 
         // Top Elevated Hexagon
         scratchPath.rewind()
@@ -1021,13 +1094,13 @@ class ProceduralRenderer {
             val gpy = cy + sin(a) * r
             val tpx = cx + cos(a) * r
             val tpy = (cy - extrudeH) + sin(a) * r
-            drawScope.drawLine(baseColor.copy(alpha = 0.40f), Offset(gpx, gpy), Offset(tpx, tpy), strokeWidth = 1.5f)
+            drawScope.drawLine(baseColor.copy(alpha = 0.40f * voidFogAlpha), Offset(gpx, gpy), Offset(tpx, tpy), strokeWidth = 1.5f)
         }
 
         // Top Hex Face Outline & Fill
-        drawScope.drawPath(scratchPath, color = baseColor.copy(alpha = 0.50f), style = Fill)
-        drawScope.drawPath(scratchPath, color = baseColor, style = strokeShieldMid)
-        drawScope.drawPath(scratchPath, color = COLOR_WHITE.copy(alpha = 0.70f), style = strokeWhiteCore)
+        drawScope.drawPath(scratchPath, color = baseColor.copy(alpha = 0.50f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(scratchPath, color = baseColor.copy(alpha = voidFogAlpha), style = strokeShieldMid)
+        drawScope.drawPath(scratchPath, color = COLOR_WHITE.copy(alpha = 0.70f * voidFogAlpha), style = strokeWhiteCore)
     }
 
     private fun drawSplitter3D(
@@ -1037,7 +1110,8 @@ class ProceduralRenderer {
         r: Float,
         angle: Float,
         depthScale: Float,
-        isParried: Boolean
+        isParried: Boolean,
+        voidFogAlpha: Float
     ) {
         val baseColor = if (isParried) COLOR_CYAN else COLOR_GREEN
         val sides = 4
@@ -1053,14 +1127,14 @@ class ProceduralRenderer {
         }
         obstaclePath.close()
 
-        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.25f), style = strokeGlowMid)
-        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.45f), style = Fill)
-        drawScope.drawPath(obstaclePath, color = COLOR_WHITE, style = strokeWhiteCore)
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.25f * voidFogAlpha), style = strokeGlowMid)
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.45f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(obstaclePath, color = COLOR_WHITE.copy(alpha = voidFogAlpha), style = strokeWhiteCore)
 
         // Internal crystal facets
         val topVertex = Offset(cx, cy - r * 0.7f)
         val botVertex = Offset(cx, cy + r * 0.7f)
-        drawScope.drawLine(COLOR_WHITE.copy(alpha = 0.50f), topVertex, botVertex, strokeWidth = 1.5f)
+        drawScope.drawLine(COLOR_WHITE.copy(alpha = 0.50f * voidFogAlpha), topVertex, botVertex, strokeWidth = 1.5f)
     }
 
     private fun drawShard3D(
@@ -1070,7 +1144,8 @@ class ProceduralRenderer {
         r: Float,
         angle: Float,
         depthScale: Float,
-        isParried: Boolean
+        isParried: Boolean,
+        voidFogAlpha: Float
     ) {
         val baseColor = if (isParried) COLOR_CYAN else COLOR_GREEN
         val sides = 3
@@ -1085,8 +1160,8 @@ class ProceduralRenderer {
         }
         obstaclePath.close()
 
-        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.50f), style = Fill)
-        drawScope.drawPath(obstaclePath, color = COLOR_WHITE, style = strokeWhiteCore)
+        drawScope.drawPath(obstaclePath, color = baseColor.copy(alpha = 0.50f * voidFogAlpha), style = Fill)
+        drawScope.drawPath(obstaclePath, color = COLOR_WHITE.copy(alpha = voidFogAlpha), style = strokeWhiteCore)
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1193,7 +1268,7 @@ class ProceduralRenderer {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Roadside Map Assets: Neon Light Pylons & Overhead Milestone Gantries
+    // Silent Void Monoliths & Spatial Warp Rings
     // ---------------------------------------------------------------------------------------------
 
     private fun drawRoadsideAssets(
@@ -1202,83 +1277,73 @@ class ProceduralRenderer {
         scaler: ViewportScaler
     ) {
         val cameraY = scaler.camera.cameraY
-        val pylonSpacing = 160f
-        val pylonScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % pylonSpacing
+        val monolithSpacing = 220f
+        val monolithScroll = (world.altitudeMeters * GameConfig.WU_PER_METER * 1.5f) % monolithSpacing
         val shoulderLeft = 60f
         val shoulderRight = 940f
+        val time = world.gameTime
 
-        var py = pylonScroll
-        while (py <= cameraY) {
-            val depthScale = scaler.scaleLaneDepth(py)
-            val pylonH = 100f
+        var my = monolithScroll
+        while (my <= cameraY) {
+            val depthScale = scaler.scaleLaneDepth(my)
 
-            // Left Shoulder Pylon
-            drawSinglePylon(drawScope, scaler, shoulderLeft, py, pylonH, depthScale, isLeft = true)
+            // Left Silent Monolith
+            drawSingleMonolith(drawScope, scaler, shoulderLeft, my, depthScale, isLeft = true, time)
 
-            // Right Shoulder Pylon
-            drawSinglePylon(drawScope, scaler, shoulderRight, py, pylonH, depthScale, isLeft = false)
+            // Right Silent Monolith
+            drawSingleMonolith(drawScope, scaler, shoulderRight, my, depthScale, isLeft = false, time)
 
-            py += pylonSpacing
+            my += monolithSpacing
         }
 
-        // Overhead Milestone Gantries spanning highway every 250m
-        drawMilestoneGantries(drawScope, world, scaler)
+        // Suspended Spatial Warp Rings spanning corridor every 250m
+        drawSpatialWarpRings(drawScope, world, scaler)
     }
 
-    private fun drawSinglePylon(
+    private fun drawSingleMonolith(
         drawScope: DrawScope,
         scaler: ViewportScaler,
         wx: Float,
         wy: Float,
-        hWu: Float,
         depthScale: Float,
-        isLeft: Boolean
+        isLeft: Boolean,
+        time: Float
     ) {
+        // Zero-gravity vertical floating bob
+        val floatOffset = sin(time * 1.6f + wy * 0.03f) * 14f * depthScale
         val gx = scaler.worldLaneToScreenX(wx, wy)
-        val gy = scaler.worldLaneToScreenY(wy)
-        val ty = scaler.worldLaneToScreenY(wy, heightWu = hWu)
+        val gy = scaler.worldLaneToScreenY(wy) + floatOffset
 
-        val alpha = (depthScale * 0.85f).coerceIn(0.12f, 0.90f)
-        val shaftW = (3f * depthScale).coerceAtLeast(1.5f)
-        val color = if (isLeft) COLOR_CYAN else COLOR_AMBER
+        val alpha = (depthScale * 0.85f).coerceIn(0.12f, 0.95f)
+        val w = 18f * depthScale
+        val h = 90f * depthScale
 
-        // Vertical Pylon Column
+        // Slender Monolith Obelisk Shape
+        monolithPath.rewind()
+        monolithPath.moveTo(gx, gy - h)             // Apex
+        monolithPath.lineTo(gx + w * 0.5f, gy - h * 0.82f)
+        monolithPath.lineTo(gx + w * 0.4f, gy)      // Base right
+        monolithPath.lineTo(gx - w * 0.4f, gy)      // Base left
+        monolithPath.lineTo(gx - w * 0.5f, gy - h * 0.82f)
+        monolithPath.close()
+
+        // Obsidian Fill
+        drawScope.drawPath(monolithPath, color = COLOR_OBSIDIAN.copy(alpha = alpha), style = Fill)
+        // Cold Edge Contour
+        val contourColor = if (isLeft) COLOR_VIOLET else COLOR_PHANTOM_CYAN
+        drawScope.drawPath(monolithPath, color = contourColor.copy(alpha = alpha * 0.60f), style = strokeWhiteCore)
+
+        // Glowing Core Energy Fissure (Running down spine)
+        val fissureW = (1.5f * depthScale).coerceAtLeast(1f)
         drawScope.drawLine(
-            color = color.copy(alpha = alpha),
-            start = Offset(gx, gy),
-            end = Offset(gx, ty),
-            strokeWidth = shaftW
-        )
-
-        // Glowing Lantern at Top
-        val lanternRadius = (6f * depthScale).coerceAtLeast(2f)
-        drawScope.drawCircle(
-            color = color.copy(alpha = alpha * 0.40f),
-            radius = lanternRadius * 1.8f,
-            center = Offset(gx, ty)
-        )
-        drawScope.drawCircle(
-            color = color.copy(alpha = alpha),
-            radius = lanternRadius,
-            center = Offset(gx, ty)
-        )
-        drawScope.drawCircle(
-            color = COLOR_WHITE.copy(alpha = alpha),
-            radius = lanternRadius * 0.45f,
-            center = Offset(gx, ty)
-        )
-
-        // Ground Foundation Pad
-        val padW = (10f * depthScale).coerceAtLeast(3f)
-        drawScope.drawLine(
-            color = COLOR_WHITE.copy(alpha = alpha * 0.6f),
-            start = Offset(gx - padW, gy),
-            end = Offset(gx + padW, gy),
-            strokeWidth = shaftW
+            color = COLOR_CYAN.copy(alpha = alpha * 0.85f),
+            start = Offset(gx, gy - h * 0.75f),
+            end = Offset(gx, gy - h * 0.15f),
+            strokeWidth = fissureW
         )
     }
 
-    private fun drawMilestoneGantries(
+    private fun drawSpatialWarpRings(
         drawScope: DrawScope,
         world: GameWorld,
         scaler: ViewportScaler
@@ -1287,59 +1352,44 @@ class ProceduralRenderer {
         val currentAlt = world.altitudeMeters
         val currentIdx = (currentAlt / 250f).toInt()
 
-        // Check milestones ahead
         for (idx in currentIdx..(currentIdx + 2)) {
             val milestoneM = idx * 250
             if (milestoneM <= 0) continue
 
-            // Distance in meters ahead of bubble:
             val dMeters = milestoneM - currentAlt
             val distWu = dMeters * GameConfig.WU_PER_METER * 1.5f
-            val gantryY = GameConfig.BUBBLE_CENTER_Y - distWu
+            val ringY = GameConfig.BUBBLE_CENTER_Y - distWu
 
-            if (gantryY in 10f..cameraY) {
-                val depthScale = scaler.scaleLaneDepth(gantryY)
+            if (ringY in 10f..cameraY) {
+                val depthScale = scaler.scaleLaneDepth(ringY)
                 val alpha = (depthScale * 0.95f).coerceIn(0.15f, 1f)
-                val leftX = scaler.worldLaneToScreenX(GameConfig.LANE_LEFT_CURB_X, gantryY)
-                val rightX = scaler.worldLaneToScreenX(GameConfig.LANE_RIGHT_CURB_X, gantryY)
-                val groundY = scaler.worldLaneToScreenY(gantryY)
-                val topY = scaler.worldLaneToScreenY(gantryY, heightWu = 140f)
+                val cx = scaler.worldLaneToScreenX(GameConfig.BUBBLE_CENTER_X, ringY)
+                val cy = scaler.worldLaneToScreenY(ringY, heightWu = 65f)
 
-                val postW = (4f * depthScale).coerceAtLeast(1.5f)
-                val beamW = (5f * depthScale).coerceAtLeast(2f)
+                val ringW = (320f * depthScale).coerceAtLeast(60f)
+                val ringH = (110f * depthScale).coerceAtLeast(24f)
 
-                // Left & Right Vertical Posts
-                drawScope.drawLine(COLOR_CYAN.copy(alpha = alpha), Offset(leftX, groundY), Offset(leftX, topY), strokeWidth = postW)
-                drawScope.drawLine(COLOR_CYAN.copy(alpha = alpha), Offset(rightX, groundY), Offset(rightX, topY), strokeWidth = postW)
-
-                // Overhead Cross-Beam
-                drawScope.drawLine(COLOR_CYAN.copy(alpha = alpha), Offset(leftX, topY), Offset(rightX, topY), strokeWidth = beamW)
-                drawScope.drawLine(COLOR_WHITE.copy(alpha = alpha * 0.7f), Offset(leftX, topY), Offset(rightX, topY), strokeWidth = postW * 0.5f)
-
-                // Center Illuminated Signboard
-                val centerX = (leftX + rightX) * 0.5f
-                val signW = (80f * depthScale).coerceAtLeast(30f)
-                val signH = (26f * depthScale).coerceAtLeast(12f)
-                val signTop = topY - signH * 0.5f
-
-                drawScope.drawRect(
-                    color = Color(0xCC050814),
-                    topLeft = Offset(centerX - signW * 0.5f, signTop),
-                    size = Size(signW, signH)
+                // Ethereal Outer Spatial Distortion Ring
+                drawScope.drawOval(
+                    color = COLOR_VIOLET.copy(alpha = alpha * 0.35f),
+                    topLeft = Offset(cx - ringW * 0.5f, cy - ringH * 0.5f),
+                    size = Size(ringW, ringH),
+                    style = strokeShieldMid
                 )
-                drawScope.drawRect(
-                    color = COLOR_AMBER.copy(alpha = alpha),
-                    topLeft = Offset(centerX - signW * 0.5f, signTop),
-                    size = Size(signW, signH),
+                // Hot Energy Core Ring
+                drawScope.drawOval(
+                    color = COLOR_CYAN.copy(alpha = alpha * 0.75f),
+                    topLeft = Offset(cx - ringW * 0.5f, cy - ringH * 0.5f),
+                    size = Size(ringW, ringH),
                     style = strokeRing
                 )
 
-                // Signboard text
+                // Holographic Floating Milestone Text
                 val canvas = drawScope.drawContext.canvas.nativeCanvas
-                hudPaintCenter.textSize = (14f * depthScale).coerceAtLeast(8f)
-                hudPaintCenter.color = 0xFFFFB800.toInt() // Amber
+                hudPaintCenter.textSize = (16f * depthScale).coerceAtLeast(9f)
+                hudPaintCenter.color = 0xFF00F0FF.toInt()
                 hudPaintCenter.alpha = (alpha * 255).toInt().coerceIn(0, 255)
-                canvas.drawText("${milestoneM}m", centerX, signTop + signH * 0.75f, hudPaintCenter)
+                canvas.drawText("${milestoneM}m", cx, cy + ringH * 0.35f, hudPaintCenter)
             }
         }
     }
@@ -1418,6 +1468,48 @@ class ProceduralRenderer {
             drawScope.drawLine(vigColor.copy(alpha = vigAlpha), Offset(sw, 0f), Offset(sw, sh), strokeWidth = 14f)
             drawScope.drawLine(vigColor.copy(alpha = vigAlpha), Offset(0f, sh), Offset(sw, sh), strokeWidth = 14f)
         }
+
+        // 4. Cosmic Dust Motes (Floating space dust caught in zero-g)
+        val moteCount = 24
+        val bx = scaler.worldLaneToScreenX(world.bubbleX, world.bubbleY)
+        val by = scaler.worldLaneToScreenY(world.bubbleY)
+
+        for (m in 0 until moteCount) {
+            val seedX = ((m * 67 + 31) % sw.toInt()).toFloat()
+            val seedY = ((m * 43 + 19) % sh.toInt()).toFloat()
+            val mx = (seedX + sin(world.gameTime * 0.5f + m) * 30f + sw) % sw
+            val my = (seedY + world.altitudeMeters * 4f + m * 25f + sh) % sh
+
+            // Distance to bubble center
+            val dx = mx - bx
+            val dy = my - by
+            val dToBubbleSq = dx * dx + dy * dy
+
+            // When close to bubble, dust mote illuminates intensely
+            val isLit = dToBubbleSq < (300f * 300f)
+            val moteAlpha = if (isLit) 0.60f else 0.14f
+            val moteSize = if (isLit) 2.2f else 1.0f
+            val moteCol = if (isLit) COLOR_CYAN else COLOR_WHITE
+
+            drawScope.drawCircle(
+                color = moteCol.copy(alpha = moteAlpha),
+                radius = moteSize,
+                center = Offset(mx, my)
+            )
+        }
+
+        // 5. Abyssal Void Vignette (The Encroaching Nothingness)
+        val isLowHp = world.bubbleHp == 1
+        val lowHpPulse = if (isLowHp) 0.5f + 0.5f * sin(world.gameTime * 8f) else 0f
+        val baseVigAlpha = if (isLowHp) (0.50f + 0.25f * lowHpPulse) else 0.40f
+
+        // Heavy dark perimeter borders fading into blackness
+        val edgeThick = 28f + world.trauma * 20f
+        val vigColor = if (isLowHp) COLOR_RED else Color.Black
+        drawScope.drawLine(vigColor.copy(alpha = baseVigAlpha), Offset(0f, 0f), Offset(0f, sh), strokeWidth = edgeThick)
+        drawScope.drawLine(vigColor.copy(alpha = baseVigAlpha), Offset(sw, 0f), Offset(sw, sh), strokeWidth = edgeThick)
+        drawScope.drawLine(vigColor.copy(alpha = baseVigAlpha), Offset(0f, 0f), Offset(sw, 0f), strokeWidth = edgeThick * 1.5f)
+        drawScope.drawLine(vigColor.copy(alpha = baseVigAlpha), Offset(0f, sh), Offset(sw, sh), strokeWidth = edgeThick * 1.5f)
     }
 
     // ---------------------------------------------------------------------------------------------
