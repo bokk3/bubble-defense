@@ -368,6 +368,35 @@ object GameConfig {
     const val PROTOCOL_DRONE_FIRE_RATE_SCALE: Float = 0.60f
 
     // ---------------------------------------------------------------------------------------------
+    // Phase 15: Frictionless Chance Rolls, In-Run Drones & Hypernova Ultimate
+    // ---------------------------------------------------------------------------------------------
+
+    // Frictionless Chance Rolls
+    const val CHANCE_ROLL_COMBO_PERCENT: Float = 0.35f
+    const val CHANCE_ROLL_MAX_HP_CRYSTAL_PERCENT: Float = 0.25f
+
+    // In-Run Sentinel Drone Deployment & Overdrive
+    const val DRONE_SCRAMBLE_PRISM_COST: Int = 12
+    const val DRONE_OVERDRIVE_DURATION: Float = 5.0f
+    const val DRONE_OVERDRIVE_COOLDOWN: Float = 12.0f
+    const val DRONE_OVERDRIVE_FIRE_INTERVAL: Float = 0.35f
+    const val DRONE_ARRIVAL_DURATION: Float = 0.45f
+
+    // The Hypernova Ultimate ("ULT")
+    const val ULT_CHARGE_PARRY: Float = 12.0f
+    const val ULT_CHARGE_PRISM_CRYSTAL: Float = 8.0f
+    const val ULT_CHARGE_DRONE_KILL: Float = 4.0f
+    const val ULT_CHARGE_DEFLECT: Float = 3.0f
+    const val ULT_CHARGE_SURVIVAL_PER_SEC: Float = 1.5f
+    const val ULT_MAX_CHARGE: Float = 100.0f
+    const val ULT_DURATION: Float = 5.0f
+    const val ULT_STAGE1_DURATION: Float = 0.35f
+    const val ULT_STAGE2_DURATION: Float = 2.0f
+    const val ULT_IMPULSE_KNOCKBACK: Float = -900.0f
+    const val ULT_SHOCKWAVE_SPEED: Float = 2400.0f
+    const val ULT_INVULN_DURATION: Float = 4.0f
+
+    // ---------------------------------------------------------------------------------------------
     // Scoring, Altitude & Combo Multipliers
     // ---------------------------------------------------------------------------------------------
 

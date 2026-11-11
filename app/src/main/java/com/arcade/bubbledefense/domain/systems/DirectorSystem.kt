@@ -188,18 +188,22 @@ class DirectorSystem(
         world.timeSinceLastDamage += dt
         updateSolarFlareCataclysm(dt, isCrunch)
 
-        // 9. Milestone Warp Chamber Protocol Draft
-        checkMilestoneWarpDraft()
+        // 9. Frictionless Protocol Rolls & Milestone Upgrades (Zero Slowdown)
+        checkMilestoneProtocolRoll()
+        checkComboProtocolRoll()
+
+        // 10. Ultimate Charge passive accumulation
+        if (world.state == com.arcade.bubbledefense.domain.world.GameState.PLAYING) {
+            world.addUltCharge(GameConfig.ULT_CHARGE_SURVIVAL_PER_SEC * dt)
+        }
     }
 
-    private fun checkMilestoneWarpDraft() {
+    private fun checkMilestoneProtocolRoll() {
         val currentMilestoneIndex = (world.altitudeMeters / GameConfig.MILESTONE_WARP_INTERVAL_METERS).toInt()
-        if (currentMilestoneIndex > world.lastMilestoneWarp && !world.warpDraftActive) {
+        if (currentMilestoneIndex > world.lastMilestoneWarp) {
             world.lastMilestoneWarp = currentMilestoneIndex
             generateWarpDraftChoices()
-            world.warpDraftActive = true
-            world.timeScale = 0.05f
-            world.floatingTexts.spawn(world.bubbleX, world.bubbleY - 120f, -60f, 0.4f, 2.0f, com.arcade.bubbledefense.engine.pool.FloatingTextPool.TEXT_BOUNTY)
+            world.rollAndInstallProtocol(seedVal = nextInt())
 
             // Protocol 7: Repair Nanites passive 500m milestone regen
             if (world.hasProtocol(GameConfig.PROTOCOL_REPAIR_NANITES) && currentMilestoneIndex % 2 == 0) {
@@ -208,6 +212,16 @@ class DirectorSystem(
                 } else {
                     world.overshieldHp = GameConfig.MAX_OVERSHIELD_HP
                 }
+            }
+        }
+    }
+
+    private fun checkComboProtocolRoll() {
+        val milestone = world.comboCount / GameConfig.COMBO_MILESTONE_STEP
+        if (milestone > world.lastComboMilestoneRolled && milestone > 0) {
+            world.lastComboMilestoneRolled = milestone
+            if (nextFloat() < GameConfig.CHANCE_ROLL_COMBO_PERCENT) {
+                world.rollAndInstallProtocol(seedVal = nextInt())
             }
         }
     }

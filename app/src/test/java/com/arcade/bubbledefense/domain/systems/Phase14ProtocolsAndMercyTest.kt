@@ -119,10 +119,10 @@ class Phase14ProtocolsAndMercyTest {
         world.altitudeMeters = 250.5f
         directorSystem.step(0.016f)
 
-        // Warp chamber activated
-        assertTrue(world.warpDraftActive)
-        assertEquals(0.05f, world.timeScale, 1e-4f)
+        // Seamless milestone unlock (Phase 15: 0ms slowdown, full 1.0x speed)
         assertEquals(1, world.lastMilestoneWarp)
+        assertEquals(1.0f, world.timeScale, 1e-4f)
+        assertNotEquals(0, world.activeProtocolsMask)
 
         // 3 distinct protocol choices generated
         val c0 = world.warpDraftChoices[0]
@@ -134,12 +134,6 @@ class Phase14ProtocolsAndMercyTest {
         assertNotEquals(c0, c1)
         assertNotEquals(c1, c2)
         assertNotEquals(c0, c2)
-
-        // Install choice 0: resumes time
-        world.installProtocol(c0)
-        assertFalse(world.warpDraftActive)
-        assertEquals(1.0f, world.timeScale, 1e-4f)
-        assertTrue(world.hasProtocol(c0))
     }
 
     // ---------------------------------------------------------------------------------------------

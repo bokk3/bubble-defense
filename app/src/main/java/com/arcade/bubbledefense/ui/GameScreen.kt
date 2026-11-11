@@ -23,6 +23,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -203,7 +204,10 @@ fun GameScreen(
     var drawTrigger by remember { mutableLongStateOf(0L) }
     var currentCharges by remember { mutableIntStateOf(world.storedPowerCharges) }
     var currentActivePower by remember { mutableIntStateOf(world.activePowerType) }
-    var currentWarpDraftActive by remember { mutableStateOf(world.warpDraftActive) }
+    var currentUltCharge by remember { mutableFloatStateOf(world.ultCharge) }
+    var currentDroneLevel by remember { mutableIntStateOf(world.droneLevel) }
+    var currentDroneOverdrive by remember { mutableFloatStateOf(world.droneOverdriveTimer) }
+    var currentPrisms by remember { mutableIntStateOf(world.prismsCollected) }
 
     // 2. Drive 120Hz Display Render Loop via withFrameNanos
     LaunchedEffect(Unit) {
@@ -223,8 +227,17 @@ fun GameScreen(
                 if (currentActivePower != world.activePowerType) {
                     currentActivePower = world.activePowerType
                 }
-                if (currentWarpDraftActive != world.warpDraftActive) {
-                    currentWarpDraftActive = world.warpDraftActive
+                if (currentUltCharge.toInt() != world.ultCharge.toInt() || (world.ultCharge >= 100f && currentUltCharge < 100f)) {
+                    currentUltCharge = world.ultCharge
+                }
+                if (currentDroneLevel != world.droneLevel) {
+                    currentDroneLevel = world.droneLevel
+                }
+                if ((world.droneOverdriveTimer > 0f) != (currentDroneOverdrive > 0f)) {
+                    currentDroneOverdrive = world.droneOverdriveTimer
+                }
+                if (currentPrisms != world.prismsCollected) {
+                    currentPrisms = world.prismsCollected
                 }
             }
         }
@@ -341,43 +354,72 @@ fun GameScreen(
             )
         }
 
-        // 5. Tactical Special Powers Hotbar Dock (Diegetic bottom command deck)
+        // 5. Tactical Action Dock (Drones, Stored Powers & Hypernova Ultimate)
         if (currentGameState == GameState.PLAYING) {
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 12.dp, start = 16.dp, end = 16.dp)
+                    .padding(bottom = 8.dp, start = 8.dp, end = 8.dp)
                     .fillMaxWidth()
                     .background(Color(0xE6050C16), shape = RoundedCornerShape(14.dp))
                     .border(1.dp, ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 1. In-Run Sentinel Drone Deployment / Overdrive
+                TacticalActionButton(
+                    modifier = Modifier.weight(1f),
+                    name = if (currentDroneLevel < 2) "DRONE" else "OVERDRIVE",
+                    icon = if (currentDroneLevel < 2) "🛰️" else "⚡",
+                    subtext = if (currentDroneLevel < 2) {
+                        if (world.freeDroneDeploymentAvailable) "FREE" else "12💎"
+                    } else {
+                        if (currentDroneOverdrive > 0f) "BURST"
+                        else if (world.droneOverdriveCooldown > 0f) "${world.droneOverdriveCooldown.toInt()}s"
+                        else "READY"
+                    },
+                    color = if (currentDroneLevel < 2) ProceduralRenderer.COLOR_CYAN else ProceduralRenderer.COLOR_AMBER,
+                    isEnabled = world.canScrambleDrone(),
+                    isActive = currentDroneOverdrive > 0f,
+                    onClick = {
+                        if (currentDroneLevel < 2) {
+                            if (world.scrambleDrone()) {
+                                currentDroneLevel = world.droneLevel
+                                currentPrisms = world.prismsCollected
+                            }
+                        } else {
+                            if (world.triggerDroneOverdrive()) {
+                                currentDroneOverdrive = world.droneOverdriveTimer
+                            }
+                        }
+                    }
+                )
+
                 // Powers Charge Counter
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 ) {
                     Text(
                         text = "POWERS",
                         color = ProceduralRenderer.COLOR_CYAN,
-                        fontSize = 9.sp,
+                        fontSize = 8.sp,
                         fontWeight = FontWeight.Bold,
                         style = tnumStyle
                     )
                     Text(
                         text = "$currentCharges/3",
                         color = if (currentCharges > 0) ProceduralRenderer.COLOR_WHITE else Color(0xFF607080),
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         style = tnumStyle
                     )
                 }
 
                 SpecialPowerButton(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(0.9f),
                     name = "CHRONO",
                     icon = "⏳",
                     color = ProceduralRenderer.COLOR_CYAN,
@@ -391,7 +433,7 @@ fun GameScreen(
                     }
                 )
                 SpecialPowerButton(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(0.9f),
                     name = "EMP",
                     icon = "⚡",
                     color = ProceduralRenderer.COLOR_AMBER,
@@ -405,7 +447,7 @@ fun GameScreen(
                     }
                 )
                 SpecialPowerButton(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(0.9f),
                     name = "LANCE",
                     icon = "🔱",
                     color = ProceduralRenderer.COLOR_MAGENTA,
@@ -418,62 +460,24 @@ fun GameScreen(
                         }
                     }
                 )
-            }
-        }
 
-        // 6. Holographic Tactical Protocol Selection Modal (Milestone 250m Warp Chamber)
-        if (currentWarpDraftActive && currentGameState == GameState.PLAYING) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.78f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                ) {
-                    Text(
-                        text = "⚡ WARP CHAMBER // ${world.altitudeMeters.toInt()}m ⚡",
-                        color = ProceduralRenderer.COLOR_CYAN,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        style = tnumStyle
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "TACTICAL PROTOCOL DRAFT",
-                        color = ProceduralRenderer.COLOR_WHITE,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        style = tnumStyle
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Select 1 upgrade to augment your defense matrix",
-                        color = Color(0xFFA0B4C8),
-                        fontSize = 11.sp,
-                        style = tnumStyle
-                    )
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    for (c in 0 until 3) {
-                        val flag = world.warpDraftChoices[c]
-                        if (flag != 0) {
-                            ProtocolCard(
-                                flag = flag,
-                                isInstalled = world.hasProtocol(flag),
-                                onInstall = {
-                                    world.installProtocol(flag)
-                                    currentWarpDraftActive = false
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
+                // The Hypernova Ultimate ("ULT")
+                val isUltReady = currentUltCharge >= 100f
+                TacticalActionButton(
+                    modifier = Modifier.weight(1.05f),
+                    name = "ULT",
+                    icon = "★",
+                    subtext = if (isUltReady) "READY!" else "${currentUltCharge.toInt()}%",
+                    color = if (isUltReady) ProceduralRenderer.COLOR_MAGENTA else Color(0xFF8888AA),
+                    isEnabled = isUltReady && world.ultActiveTimer <= 0f,
+                    isActive = world.ultActiveTimer > 0f,
+                    isPulsing = isUltReady,
+                    onClick = {
+                        if (world.triggerUltimate()) {
+                            currentUltCharge = 0f
                         }
                     }
-                }
+                )
             }
         }
 
@@ -650,7 +654,10 @@ fun GameScreen(
                                     deathProcessed = false
                                     currentCharges = world.storedPowerCharges
                                     currentActivePower = world.activePowerType
-                                    currentWarpDraftActive = false
+                                    currentUltCharge = world.ultCharge
+                                    currentDroneLevel = world.droneLevel
+                                    currentDroneOverdrive = 0f
+                                    currentPrisms = world.prismsCollected
                                     world.state = GameState.PLAYING
                                     currentGameState = GameState.PLAYING
                                 }
@@ -675,6 +682,59 @@ fun GameScreen(
  * Diegetic tactical special power invocation button.
  * Zero-allocation Compose button with visual feedback on charges and active power state.
  */
+@Composable
+private fun TacticalActionButton(
+    modifier: Modifier = Modifier,
+    name: String,
+    icon: String,
+    subtext: String,
+    color: Color,
+    isEnabled: Boolean,
+    isActive: Boolean = false,
+    isPulsing: Boolean = false,
+    onClick: () -> Unit
+) {
+    val borderColor = if (isActive || isPulsing) color else if (isEnabled) color.copy(alpha = 0.5f) else Color(0xFF303A48)
+    val bgColor = if (isActive) color.copy(alpha = 0.28f) else if (isEnabled) Color(0xD90A1220) else Color(0x800A1220)
+
+    Box(
+        modifier = modifier
+            .background(bgColor, RoundedCornerShape(8.dp))
+            .border(if (isPulsing) 1.5.dp else 1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable(enabled = isEnabled) { onClick() }
+            .padding(vertical = 4.dp, horizontal = 2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = icon,
+                fontSize = 12.sp
+            )
+            Text(
+                text = name,
+                color = if (isEnabled) color else Color(0xFF607080),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                style = TextStyle(fontFeatureSettings = "tnum")
+            )
+            Text(
+                text = subtext,
+                color = if (isPulsing) ProceduralRenderer.COLOR_WHITE else if (isEnabled) Color(0xFFA0B4C8) else Color(0xFF405060),
+                fontSize = 8.sp,
+                fontWeight = if (isPulsing) FontWeight.Bold else FontWeight.Normal,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                style = TextStyle(fontFeatureSettings = "tnum")
+            )
+        }
+    }
+}
+
 @Composable
 private fun SpecialPowerButton(
     modifier: Modifier = Modifier,

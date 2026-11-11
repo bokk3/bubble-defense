@@ -370,6 +370,10 @@ class FloatingTextPool(val capacity: Int = GameConfig.FLOATING_TEXT_POOL_CAPACIT
         const val TEXT_CRUSH: Byte = 6
         const val TEXT_CLOSE_CALL: Byte = 7
         const val TEXT_BOUNTY: Byte = 8
+        const val TEXT_ULT_READY: Byte = 9
+        const val TEXT_HYPERNOVA: Byte = 10
+        const val TEXT_PROTOCOL_UNLOCKED: Byte = 11
+        const val TEXT_OVERDRIVE: Byte = 12
     }
 
     fun spawn(

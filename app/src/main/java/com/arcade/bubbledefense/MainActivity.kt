@@ -5,10 +5,18 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.arcade.bubbledefense.ui.GameScreen
+import com.arcade.bubbledefense.ui.splash.TachyonVerticalSplash
 
 /**
  * Main activity for Bubble Defense.
@@ -32,7 +40,21 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContent {
-            GameScreen()
+            var isSplashFinished by remember { mutableStateOf(false) }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                // GameScreen is mounted underneath so engine and textures initialize seamlessly
+                GameScreen()
+
+                // Tachyon transparent vertical splash overlays and dissolves into the game
+                if (!isSplashFinished) {
+                    TachyonVerticalSplash(
+                        onSplashComplete = {
+                            isSplashFinished = true
+                        }
+                    )
+                }
+            }
         }
     }
 }

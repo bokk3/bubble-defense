@@ -29,6 +29,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.7.0`** | **Phase 12** | Sideline Sentinel Drones & Tactical Prism Tech Tree | **RELEASED** | 2026-11-11 |
 | **`v1.8.0`** | **Phase 13** | Green Armor Tapping, Solar Flare Cataclysms & 3 Stored Special Powers | **RELEASED** | 2026-11-11 |
 | **`v1.9.0`** | **Phase 14** | Roguelike Tactical Protocols & Dynamic Mercy Flow | **RELEASED** | 2026-11-11 |
+| **`v1.10.0`** | **Phase 15** | Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate | **RELEASED** | 2026-11-11 |
 
 ---
 
@@ -443,6 +444,30 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 
 ---
 
+### Phase 15: Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate (`v1.10.0`) — [COMPLETED]
+- [x] **T15.1 Frictionless In-Run Protocol Chance Rolls (Zero Slowdown)** `[ARCH-AGENT]`, `[kinetic-flow-architect]`
+  - [x] Remove `warpDraftActive`, `warpDraftChoices`, and the $0.05\times$ time dilation from `DirectorSystem` and `GameScreen.kt`.
+  - [x] Implement instant 100% protocol chance roll upon crossing every 250m altitude milestone.
+  - [x] Implement bonus in-run chance rolls: 35% on combo milestones (5x, 10x, 15x) and 25% on full HP Green Armor Crystal taps.
+  - [x] Implement diegetic floating combat popup banner (`"[ PROTOCOL UNLOCKED: <NAME> ]"`), synth sting, and radial bubble ripple with 0ms interruption.
+- [x] **T15.2 In-Run Sentinel Drone Tactical Scrambling & Overdrive** `[PHYS-AGENT]`, `[ECON-AGENT]`, `[arcade-economy-architect]`
+  - [x] Implement tactical Scramble Drone button `[ 🛰️ SCRAMBLE ]` and shoulder tap gesture handler.
+  - [x] Support Level 0 -> 1 and Level 1 -> 2 mid-run drone deployment (12 Prisms or free first scramble per run).
+  - [x] Support 5.0s Drone Overdrive Barrage when both drones are deployed ($3\times$ rapid-fire amber plasma crossfire).
+  - [x] Implement Stratosphere Warp Drop arrival animation with afterburner plumes and locking micro-shockwave.
+- [x] **T15.3 The Hypernova Ultimate ("ULT") System & Spectacular Animations** `[JUICE-AGENT]`, `[kotlin-ux-architect]`, `[PHYS-AGENT]`
+  - [x] Implement dynamic 0–100% `ultCharge` accumulation across combat actions (+12% parry, +4% drone kill, +8% crystal/prism, +3% deflect).
+  - [x] Implement diegetic outer aura Ult gauge and spectral rainbow ready flare button `[ ★ HYPERNOVA ULT ★ ]`.
+  - [x] Implement Stage 1 Implosion (0.0s–0.35s): 40ms hit-stop, negative inward contraction wave, chromatic aberration, and sub-bass 40Hz drop.
+  - [x] Implement Stage 2 Singularity Hyper-Beam & Cataclysm (0.35s–2.0s): Massive celestial laser pillar, upward rainbow shockwave ring ($2400\text{ wu/s}$), instant vaporization of fragile hazards, and $+900\text{ wu/s}$ upward recoil on heavy hazards.
+  - [x] Implement Stage 3 Prismatic Overdrive Aftermath (2.0s–5.0s): 100% ink refill, 4.0s Prismatic Aegis invulnerability, 2x score multiplier, and combat banner.
+- [x] **T15.4 Unit Tests, Zero-Alloc Verification & Release APK (v1.10.0)** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement `Phase15UltAndDronesTest.kt` verifying all new systems and edge cases.
+  - [x] Verify zero heap allocations in hot paths across all systems (189/189 unit tests passing).
+  - [x] Assemble signed release APK `bubble-defense-v1.10.0.apk` (854 KB, Scheme v2 verified, AAPT verified) and publish to GitHub Releases.
+
+---
+
 ## 3. Known Edge Cases & Handling
 
 1. **Degenerate Segments (`lenSq <= 1e-8 wu²`):**
@@ -482,6 +507,24 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.10.0` (2026-11-11) — Phase 15: Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate
+- **feat(protocols):** Frictionless In-Run Protocol Chance Rolls (0ms Slowdown):
+  - Completely eliminated the 3-card draft modal and $0.05\times$ time-dilation freeze on milestones; gameplay maintains full supersonic $126\text{ km/h}$ velocity.
+  - 100% instant protocol unlock upon crossing every 250m altitude milestone with diegetic floating combat banner and crystalline chime.
+  - Added dynamic in-run chance rolls: 35% on combo milestones (5x, 10x, 15x) and 25% on full HP Green Armor Crystal taps.
+- **feat(drones):** In-Run Sentinel Drone Tactical Scrambling & Overdrive Barrages:
+  - Added tactile Scramble Drone action `[ 🛰️ SCRAMBLE ]` allowing mid-run deployment of Left Drone (Level 1) and Right Drone (Level 2) (12 Prisms or free first scramble per run).
+  - Stratosphere Warp Drop arrival animation: Drones descend from the horizon vanishing point with glowing thruster streaks and locking micro-shockwaves.
+  - Added 5.0s **Drone Overdrive Barrage** when both drones are deployed: $3\times$ rapid-fire amber plasma crossfire ($0.35\text{s}$ cooldown).
+- **feat(ult):** The Hypernova Ultimate ("ULT") System & Spectacular Animations:
+  - Dynamic 0–100% `ultCharge` accumulation across combat actions (+12% parry, +4% drone kill, +8% crystal/prism, +3% deflect).
+  - Concentric Diegetic Ult Meter encircling the bubble's outer aura, cycling to spectral rainbow when fully charged.
+  - Stage 1 (0.0s–0.35s) — Gravitational Implosion: 40ms cinematic hit-stop, contracting negative space distortion rings, and sub-bass drop.
+  - Stage 2 (0.35s–2.0s) — Singularity Hyper-Beam & Cataclysm: Massive vertical celestial laser pillar cascading from top Singularity down center corridor, upward sweeping rainbow shockwave ring ($2400\text{ wu/s}$), instant vaporization of fragile hazards (Needles, Shards, Meteorites), $+900\text{ wu/s}$ upward recoil on heavy hazards, and 64 swirling perspective vortex particles.
+  - Stage 3 (2.0s–5.0s) — Prismatic Overdrive Aftermath: 100% ink refill, 4.0s Prismatic Aegis invulnerability, 2x score multiplier, and combat banner.
+- **test(suite):** Full test suite expanded to **189/189 unit tests** (0 failures, 0 skipped, 0 heap allocations on hot paths).
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.10.0.apk` (854 KB, APK Signature Scheme v2 verified, `aapt dump badging` 0 errors).
 
 ### `v1.9.0` (2026-11-11) — Phase 14: Roguelike Tactical Protocols & Dynamic Mercy Flow
 - **feat(mercy):** Dynamic Mercy Flow & Early Wave Pacing:
@@ -696,11 +739,11 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-11
-- **Current Version:** `v1.9.0` (RELEASED)
+- **Current Version:** `v1.10.0` (RELEASED)
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 14 COMPLETE (Roguelike Tactical Protocols & Dynamic Mercy Flow)**:
-  - Dynamic Mercy Flow: 1 HP Threat Slowdown (-25% hazard velocity), Emergency Green Armor Crystal relief within 3.0s, extended 500ms warning chevrons, Wave 1 pacing rebalance (Needles at $t \ge 28\text{s}$, Solar Flares gated to Wave 2+).
-  - 8 Roguelike Tactical Protocols: Bitmask state engine in `GameWorld.kt` supporting Magnetic Aegis (300 wu suction), Bouncy Shields (+35% elasticity, -35% drain), Drone Overclock (+40% fire rate, 2-target pierce), Temporal Buffer (220ms parry window, +30% impulse), Deep Ink Well (1500 wu tank, +30% regen), Nova Deflection (140 wu radial shockwave), Repair Nanites (+1 immediate HP/overshield, 500m regen), and Prism Battery (8 prisms = +1 special power).
-  - Milestone Warp Chamber & Holographic Protocol Draft Modal: Triggered at every 250m altitude milestone with 0.05x cinematic time dilation, drafting 3 randomized protocol upgrade cards with Compose phase hygiene.
-  - Verified with 179/179 unit tests passing, zero heap allocations on hot paths, signed release APK `bubble-defense-v1.9.0.apk` (854 KB, Scheme v2 verified, AAPT verified).
-- **Next Task:** Solicit player feedback on roguelike protocol builds, mercy recovery feel, and endless run depth.
+- **Status:** **PHASE 15 COMPLETE (Seamless Protocol Chance Rolls, In-Run Drone Deployment & Hypernova Ultimate)**:
+  - Seamless Protocol Chance Rolls: Eliminated modal freeze and 0.05x time dilation completely; instant protocol unlocks at 250m milestones (100%), combo streaks (35%), and full-HP Green Crystal taps (25%) with 0ms gameplay interruption.
+  - In-Run Sentinel Drone Deployment: Tactile `[ 🛰️ SCRAMBLE ]` button and shoulder tap gestures allowing players to summon Left & Right Drones mid-run (12 Prisms or free first scramble), plus 5.0s Overdrive Barrage (3x rapid-fire amber plasma crossfire).
+  - The Hypernova Ultimate ("ULT"): 0–100% charging meter via parries, drone kills, and pickups. Multi-stage cataclysm spectacle: Stage 1 Implosion (40ms hit-stop, negative contraction wave, sub-bass drop); Stage 2 Singularity Hyper-Beam (massive celestial laser pillar, upward rainbow shockwave @ 2400 wu/s, fragile hazard vaporization, +900 wu/s upward recoil on heavy hazards, 64 vortex particles); Stage 3 Prismatic Overdrive (100% ink refill, 4.0s invulnerability, 2x combo multiplier).
+  - Verified with 189/189 unit tests passing, zero heap allocations on hot paths, signed release APK `bubble-defense-v1.10.0.apk` (854 KB, Scheme v2 verified, AAPT verified).
+- **Next Task:** Solicit player feedback on Ult spectacle feel, drone scramble pacing, and endless run depth.

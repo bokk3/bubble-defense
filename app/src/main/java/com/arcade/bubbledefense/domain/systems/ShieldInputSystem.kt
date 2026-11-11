@@ -196,10 +196,16 @@ class ShieldInputSystem(private val world: GameWorld) {
             world.bubbleHp++
             world.floatingTexts.spawn(x, y - 20f, -80f, 0.45f, 1.4f, FloatingTextPool.TEXT_BOUNTY)
         } else {
+            val wasFullOvershield = world.overshieldHp >= GameConfig.MAX_OVERSHIELD_HP
             world.overshieldHp = min(GameConfig.MAX_OVERSHIELD_HP, world.overshieldHp + 1)
             world.floatingTexts.spawn(x, y - 20f, -80f, 0.45f, 1.4f, FloatingTextPool.TEXT_PLUS_100)
+            if (wasFullOvershield) {
+                // Resonance roll: award protocol when tapping at maximum armor saturation
+                world.rollAndInstallProtocol()
+            }
         }
         world.addScore(300)
+        world.addUltCharge(GameConfig.ULT_CHARGE_PRISM_CRYSTAL)
 
         // Spawn emerald nano-particles
         val pCount = 14

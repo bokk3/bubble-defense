@@ -168,6 +168,18 @@ class GameWorld(initialSeed: Int = 1337) {
     val warpDraftChoices = IntArray(3)
     var emergencyCrystalTimer: Float = 0f
     var prismBatteryProgress: Int = 0
+    var lastComboMilestoneRolled: Int = 0
+
+    // ---------------------------------------------------------------------------------------------
+    // Phase 15: The Hypernova Ultimate ("ULT") & In-Run Drone Scramble State
+    // ---------------------------------------------------------------------------------------------
+    var ultCharge: Float = 0f
+    var ultActiveTimer: Float = 0f
+    var ultStage: Int = 0 // 0 = INACTIVE, 1 = IMPLOSION, 2 = HYPER_BEAM, 3 = OVERDRIVE
+    var droneOverdriveTimer: Float = 0f
+    var droneOverdriveCooldown: Float = 0f
+    var droneArrivalAnimTimer: Float = 0f
+    var freeDroneDeploymentAvailable: Boolean = true
 
     init {
         reset(initialSeed)
@@ -240,6 +252,16 @@ class GameWorld(initialSeed: Int = 1337) {
         warpDraftChoices[2] = 0
         emergencyCrystalTimer = 0f
         prismBatteryProgress = 0
+        lastComboMilestoneRolled = 0
+
+        // Reset Ultimate & In-Run Drones
+        ultCharge = 0f
+        ultActiveTimer = 0f
+        ultStage = 0
+        droneOverdriveTimer = 0f
+        droneOverdriveCooldown = 0f
+        droneArrivalAnimTimer = 0f
+        freeDroneDeploymentAvailable = true
 
         // Reset Juice
         trauma = 0f
@@ -409,5 +431,111 @@ class GameWorld(initialSeed: Int = 1337) {
                 floatingTexts.spawn(bubbleX, bubbleY - 90f, -90f, 0.4f, 1.3f, FloatingTextPool.TEXT_BOUNTY)
             }
         }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Phase 15: The Hypernova Ultimate ("ULT") & In-Run Drone Scramble Logic
+    // ---------------------------------------------------------------------------------------------
+
+    /** Accumulates Ultimate charge up to 100%. Spawns alert when fully charged. */
+    fun addUltCharge(amount: Float) {
+        if (ultActiveTimer > 0f) return // Do not charge while ult is actively firing
+        val prev = ultCharge
+        ultCharge = (ultCharge + amount).coerceIn(0f, GameConfig.ULT_MAX_CHARGE)
+        if (prev < GameConfig.ULT_MAX_CHARGE && ultCharge >= GameConfig.ULT_MAX_CHARGE) {
+            floatingTexts.spawn(bubbleX, bubbleY - 100f, -90f, 0.5f, 1.5f, FloatingTextPool.TEXT_ULT_READY)
+            addTrauma(0.18f)
+        }
+    }
+
+    /** Triggers the multi-stage Hypernova Ultimate. */
+    fun triggerUltimate(): Boolean {
+        if (ultCharge < GameConfig.ULT_MAX_CHARGE || ultActiveTimer > 0f) return false
+        ultCharge = 0f
+        ultActiveTimer = GameConfig.ULT_DURATION
+        ultStage = 1 // Stage 1: Gravitational Implosion
+        triggerHitStop(0.040f) // 40ms cinematic hit-stop
+        addTrauma(0.85f)
+        floatingTexts.spawn(bubbleX, bubbleY - 110f, -100f, 0.6f, 1.6f, FloatingTextPool.TEXT_HYPERNOVA)
+        return true
+    }
+
+    /** Checks whether the player has enough resources/cooldown to scramble a drone or overdrive. */
+    fun canScrambleDrone(): Boolean {
+        return if (droneLevel < 2) {
+            freeDroneDeploymentAvailable || prismsCollected >= GameConfig.DRONE_SCRAMBLE_PRISM_COST
+        } else {
+            droneOverdriveCooldown <= 0f && droneOverdriveTimer <= 0f
+        }
+    }
+
+    /**
+     * Tactically scrambles a Sentinel Drone mid-run:
+     * - Level 0 -> 1: Scrambles Left Sentinel
+     * - Level 1 -> 2: Scrambles Right Sentinel
+     * - Level 2+: Triggers Overdrive Barrage
+     */
+    fun scrambleDrone(): Boolean {
+        if (droneLevel < 2) {
+            if (!freeDroneDeploymentAvailable) {
+                if (prismsCollected < GameConfig.DRONE_SCRAMBLE_PRISM_COST) return false
+                prismsCollected -= GameConfig.DRONE_SCRAMBLE_PRISM_COST
+            } else {
+                freeDroneDeploymentAvailable = false
+            }
+            droneLevel++
+            droneArrivalAnimTimer = GameConfig.DRONE_ARRIVAL_DURATION
+            floatingTexts.spawn(
+                if (droneLevel == 1) 75f else 925f,
+                800f, -90f, 0.4f, 1.4f, FloatingTextPool.TEXT_BOUNTY
+            )
+            addTrauma(0.20f)
+            return true
+        } else {
+            return triggerDroneOverdrive()
+        }
+    }
+
+    /** Triggers 5.0s of hyper-speed 3x rapid drone fire with amber plasma tracers. */
+    fun triggerDroneOverdrive(): Boolean {
+        if (droneOverdriveCooldown > 0f || droneOverdriveTimer > 0f) return false
+        droneOverdriveTimer = GameConfig.DRONE_OVERDRIVE_DURATION
+        droneOverdriveCooldown = GameConfig.DRONE_OVERDRIVE_COOLDOWN
+        floatingTexts.spawn(bubbleX, bubbleY - 90f, -90f, 0.4f, 1.4f, FloatingTextPool.TEXT_OVERDRIVE)
+        addTrauma(0.30f)
+        return true
+    }
+
+    /**
+     * Seamlessly rolls and installs a random uninstalled tactical protocol.
+     * Guaranteed zero-pause and zero time-dilation interruption.
+     */
+    fun rollAndInstallProtocol(seedVal: Int = rngSeed): Int {
+        var uninstalledCount = 0
+        for (i in 0 until GameConfig.TOTAL_PROTOCOLS) {
+            val flag = 1 shl i
+            if (!hasProtocol(flag)) {
+                uninstalledCount++
+            }
+        }
+        if (uninstalledCount == 0) return 0 // All protocols already installed!
+
+        var pickIndex = (kotlin.math.abs(seedVal) % uninstalledCount)
+        var targetFlag = 0
+        for (i in 0 until GameConfig.TOTAL_PROTOCOLS) {
+            val flag = 1 shl i
+            if (!hasProtocol(flag)) {
+                if (pickIndex == 0) {
+                    targetFlag = flag
+                    break
+                }
+                pickIndex--
+            }
+        }
+        if (targetFlag != 0) {
+            installProtocol(targetFlag)
+            floatingTexts.spawn(bubbleX, bubbleY - 80f, -90f, 0.5f, 1.4f, FloatingTextPool.TEXT_PROTOCOL_UNLOCKED)
+        }
+        return targetFlag
     }
 }

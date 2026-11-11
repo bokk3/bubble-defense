@@ -12,8 +12,8 @@ android {
         applicationId = "com.arcade.bubbledefense"
         minSdk = 26
         targetSdk = 35
-        versionCode = 190
-        versionName = "1.9.0"
+        versionCode = 200
+        versionName = "1.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

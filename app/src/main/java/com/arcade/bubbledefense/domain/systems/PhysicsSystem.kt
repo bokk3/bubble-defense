@@ -103,6 +103,84 @@ class PhysicsSystem(private val world: GameWorld) {
                 world.activePowerType = GameConfig.POWER_NONE
             }
         }
+
+        // Phase 15: The Hypernova Ultimate ("ULT") Execution
+        updateUltimate(dt)
+
+        // Phase 15: In-Run Drone Timers
+        if (world.droneOverdriveTimer > 0f) {
+            world.droneOverdriveTimer -= dt
+        }
+        if (world.droneOverdriveCooldown > 0f) {
+            world.droneOverdriveCooldown -= dt
+        }
+        if (world.droneArrivalAnimTimer > 0f) {
+            world.droneArrivalAnimTimer -= dt
+        }
+    }
+
+    private fun updateUltimate(dt: Float) {
+        if (world.ultActiveTimer <= 0f) {
+            world.ultStage = 0
+            return
+        }
+        world.ultActiveTimer -= dt
+        val elapsed = GameConfig.ULT_DURATION - world.ultActiveTimer
+
+        if (elapsed < GameConfig.ULT_STAGE1_DURATION) {
+            // Stage 1: Gravitational Implosion (Inward pull & distortion)
+            world.ultStage = 1
+            for (i in 0 until world.obstacles.count) {
+                val oType = world.obstacles.type[i]
+                if (oType != GameConfig.TYPE_PRISM_CARRIER && oType != GameConfig.TYPE_ARMOR_CRYSTAL) {
+                    val dx = world.bubbleX - world.obstacles.x[i]
+                    val dy = world.bubbleY - world.obstacles.y[i]
+                    world.obstacles.vx[i] += dx * 0.8f * dt
+                    world.obstacles.vy[i] += dy * 0.8f * dt
+                }
+            }
+        } else if (elapsed < GameConfig.ULT_STAGE2_DURATION) {
+            // Stage 2: Singularity Hyper-Beam & Cataclysm (Massive upward blast & vaporization)
+            world.ultStage = 2
+            var i = 0
+            while (i < world.obstacles.count) {
+                val oType = world.obstacles.type[i]
+                if (oType != GameConfig.TYPE_PRISM_CARRIER && oType != GameConfig.TYPE_ARMOR_CRYSTAL) {
+                    val ox = world.obstacles.x[i]
+                    val oy = world.obstacles.y[i]
+                    if (oType == GameConfig.TYPE_NEEDLE || oType == GameConfig.TYPE_SHARD || oType == GameConfig.TYPE_METEORITE) {
+                        spawnSparkBurst(ox, oy, Vec2.UP, count = 12, isParry = true)
+                        world.obstacles.removeAt(i)
+                        world.addScore(200)
+                        continue
+                    } else {
+                        world.obstacles.vy[i] = GameConfig.ULT_IMPULSE_KNOCKBACK
+                        world.obstacles.flags[i] = world.obstacles.flags[i] or GameConfig.FLAG_PARRIED
+                        spawnSparkBurst(ox, oy, Vec2.UP, count = 8, isParry = true)
+                    }
+                }
+                i++
+            }
+        } else {
+            // Stage 3: Prismatic Overdrive Aftermath
+            if (world.ultStage != 3) {
+                world.ultStage = 3
+                // 100% ink refill
+                world.ink = if (world.hasProtocol(GameConfig.PROTOCOL_DEEP_INK_WELL)) {
+                    GameConfig.PROTOCOL_DEEP_INK_MAX
+                } else {
+                    GameConfig.INK_MAX
+                }
+                // 4.0s Prismatic Aegis invulnerability aura
+                world.bubbleInvulnTimer = GameConfig.ULT_INVULN_DURATION
+                // Double score bonus multiplier
+                world.comboMultiplier = (world.comboMultiplier * 2.0f).coerceAtMost(GameConfig.COMBO_MAX_MULTIPLIER)
+            }
+        }
+
+        if (world.ultActiveTimer <= 0f) {
+            world.ultStage = 0
+        }
     }
 
     /**
@@ -425,6 +503,7 @@ class PhysicsSystem(private val world: GameWorld) {
             world.perfectParriesTotal++
             world.parryTriggerCount++
             world.addParryPowerProgress()
+            world.addUltCharge(GameConfig.ULT_CHARGE_PARRY)
             world.triggerHitStop(GameConfig.HIT_STOP_PARRY_DURATION)
             world.addTrauma(GameConfig.TRAUMA_PARRY)
 
@@ -466,6 +545,7 @@ class PhysicsSystem(private val world: GameWorld) {
             world.obstacles.flags[obsIdx] = world.obstacles.flags[obsIdx] or GameConfig.FLAG_DEFLECTED
             world.addTrauma(GameConfig.TRAUMA_DEFLECT)
             world.addScore((GameConfig.SCORE_DEFLECT_BONUS * world.comboMultiplier).toInt())
+            world.addUltCharge(GameConfig.ULT_CHARGE_DEFLECT)
             spawnSparkBurst(contact.point.x, contact.point.y, contact.normal, count = 6, isParry = false)
         }
 
@@ -629,6 +709,7 @@ class PhysicsSystem(private val world: GameWorld) {
             world.prismsCollected += GameConfig.PRISM_CARRIER_PRISMS_AWARDED
             world.bonusScore += GameConfig.PRISM_CARRIER_SCORE_AWARDED
             world.addPrismHarvestProgress()
+            world.addUltCharge(GameConfig.ULT_CHARGE_PRISM_CRYSTAL)
             if (world.bubbleHp < GameConfig.BUBBLE_MAX_HP) {
                 world.bubbleHp++
             }
@@ -643,6 +724,7 @@ class PhysicsSystem(private val world: GameWorld) {
 
         // Untapped Green Armor Crystal (absorbed gently without damage)
         if (obsType == GameConfig.TYPE_ARMOR_CRYSTAL) {
+            world.addUltCharge(GameConfig.ULT_CHARGE_PRISM_CRYSTAL)
             spawnSparkBurst(ox, oy, Vec2.UP, count = 8, isParry = true)
             world.obstacles.removeAt(obsIdx)
             return

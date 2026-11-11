@@ -74,7 +74,11 @@ class ProceduralRenderer {
             "SPLIT!",       // 5: TEXT_SPLIT
             "CRUSH!",       // 6: TEXT_CRUSH
             "CLOSE CALL!",  // 7: TEXT_CLOSE_CALL
-            "+5 PRISMS!"    // 8: TEXT_BOUNTY
+            "+5 PRISMS!",   // 8: TEXT_BOUNTY
+            "ULT READY!",   // 9: TEXT_ULT_READY
+            "★ HYPERNOVA! ★", // 10: TEXT_HYPERNOVA
+            "PROTOCOL ONLINE!", // 11: TEXT_PROTOCOL_UNLOCKED
+            "DRONE OVERDRIVE!"  // 12: TEXT_OVERDRIVE
         )
     }
 
@@ -191,6 +195,9 @@ class ProceduralRenderer {
 
         // 8c. Draw Stored Special Powers Active VFX (Chrono Warp, Supernova EMP, Plasma Lance)
         drawSpecialPowersVFX(drawScope, world, scaler)
+
+        // 8d. Draw The Hypernova Ultimate ("ULT") Multi-Stage Visual Spectacle
+        drawUltimateVFX(drawScope, world, scaler)
 
         // 9. Draw 3D Threat Telegraph Warning Lasers & Chevrons
         drawTelegraphs(drawScope, world, scaler)
@@ -1056,6 +1063,48 @@ class ProceduralRenderer {
                 drawScope.drawCircle(COLOR_AMBER, radius = 6f, center = Offset(nx, ny), style = strokeRing)
             }
         }
+
+        // 6. Diegetic Hypernova Ult Meter Arc (Concentric outer energy gauge)
+        val ultRatio = (world.ultCharge / GameConfig.ULT_MAX_CHARGE).coerceIn(0f, 1f)
+        val ultRadiusX = ringRadiusX + 11f
+        val ultRadiusY = ultRadiusX * 0.60f
+        val ultTopLeft = Offset(sbx - ultRadiusX, sby - ultRadiusY)
+        val ultSize = Size(ultRadiusX * 2f, ultRadiusY * 2f)
+
+        // Background groove
+        drawScope.drawArc(
+            color = COLOR_MAGENTA.copy(alpha = 0.14f),
+            startAngle = 150f,
+            sweepAngle = totalSweep,
+            useCenter = false,
+            topLeft = ultTopLeft,
+            size = ultSize,
+            style = strokeCoreThin
+        )
+
+        if (ultRatio > 0f) {
+            val ultSweep = totalSweep * ultRatio
+            val ultColor = if (ultRatio >= 1.0f) {
+                // Spectral Rainbow cycle when ready to ignite
+                val rainbowPhase = (time * 3.5f) % 1f
+                val r = (0.5f + 0.5f * sin(rainbowPhase * 6.283f)).coerceIn(0f, 1f)
+                val g = (0.5f + 0.5f * sin((rainbowPhase + 0.333f) * 6.283f)).coerceIn(0f, 1f)
+                val b = (0.5f + 0.5f * sin((rainbowPhase + 0.666f) * 6.283f)).coerceIn(0f, 1f)
+                Color(r, g, b, 1f)
+            } else {
+                COLOR_MAGENTA
+            }
+
+            drawScope.drawArc(
+                color = ultColor.copy(alpha = if (ultRatio >= 1f) 0.95f else 0.60f),
+                startAngle = 150f,
+                sweepAngle = ultSweep,
+                useCenter = false,
+                topLeft = ultTopLeft,
+                size = ultSize,
+                style = strokeThickRing
+            )
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1786,6 +1835,167 @@ class ProceduralRenderer {
     }
 
     // ---------------------------------------------------------------------------------------------
+    // The Hypernova Ultimate ("ULT") Multi-Stage Visual Spectacle
+    // ---------------------------------------------------------------------------------------------
+
+    private fun drawUltimateVFX(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler
+    ) {
+        if (world.ultActiveTimer <= 0f) return
+
+        val time = world.gameTime
+        val elapsed = GameConfig.ULT_DURATION - world.ultActiveTimer
+        val screenW = scaler.screenWidthPx
+        val screenH = scaler.screenHeightPx
+        val horizonY = scaler.camera.vanishingPointY
+        val sbx = scaler.worldLaneToScreenX(world.bubbleX, world.bubbleY)
+        val sby = scaler.worldLaneToScreenY(world.bubbleY)
+
+        when (world.ultStage) {
+            1 -> {
+                // Stage 1: Gravitational Implosion (Inward Space Contraction)
+                val stage1Ratio = (elapsed / GameConfig.ULT_STAGE1_DURATION).coerceIn(0f, 1f)
+                val implosionRadius = (screenW * 0.8f) * (1f - stage1Ratio)
+
+                // Dark violet negative screen flash
+                drawScope.drawRect(
+                    color = Color(0x33440055),
+                    topLeft = Offset.Zero,
+                    size = Size(screenW, screenH)
+                )
+
+                // Contracting shockwave rings
+                drawScope.drawCircle(
+                    color = COLOR_MAGENTA.copy(alpha = 0.65f * (1f - stage1Ratio)),
+                    radius = implosionRadius.coerceAtLeast(10f),
+                    center = Offset(sbx, sby),
+                    style = strokeThickRing
+                )
+                drawScope.drawCircle(
+                    color = COLOR_CYAN.copy(alpha = 0.85f * (1f - stage1Ratio)),
+                    radius = (implosionRadius * 0.6f).coerceAtLeast(6f),
+                    center = Offset(sbx, sby),
+                    style = strokeCoreThin
+                )
+
+                // Space-warping radial inward spikes
+                for (k in 0 until 8) {
+                    val angle = (k * 45f) * (PI.toFloat() / 180f) + time * 6f
+                    val rx = cos(angle) * implosionRadius
+                    val ry = sin(angle) * implosionRadius
+                    drawScope.drawLine(
+                        color = COLOR_WHITE.copy(alpha = 0.50f * (1f - stage1Ratio)),
+                        start = Offset(sbx + rx, sby + ry),
+                        end = Offset(sbx, sby),
+                        strokeWidth = 2f
+                    )
+                }
+            }
+            2 -> {
+                // Stage 2: Singularity Hyper-Beam & Cataclysm (Massive Celestial Laser Pillar & Rainbow Shockwave)
+                val stage2Ratio = ((elapsed - GameConfig.ULT_STAGE1_DURATION) / (GameConfig.ULT_STAGE2_DURATION - GameConfig.ULT_STAGE1_DURATION)).coerceIn(0f, 1f)
+                val beamAlpha = (1f - stage2Ratio * 0.35f).coerceIn(0f, 1f)
+
+                // 1. Full-Lane Celestial Laser Pillar
+                val beamCenterSx = scaler.worldLaneToScreenX(500f, 1000f)
+                val beamWidth = screenW * 0.55f
+
+                // Outer cosmic violet aura
+                drawScope.drawRect(
+                    color = Color(0x778800FF),
+                    topLeft = Offset(beamCenterSx - beamWidth * 0.5f, horizonY),
+                    size = Size(beamWidth, screenH - horizonY)
+                )
+                // Mid radiant cyan plasma
+                drawScope.drawRect(
+                    color = COLOR_CYAN.copy(alpha = 0.70f * beamAlpha),
+                    topLeft = Offset(beamCenterSx - beamWidth * 0.25f, horizonY),
+                    size = Size(beamWidth * 0.5f, screenH - horizonY)
+                )
+                // Hot white laser core
+                drawScope.drawRect(
+                    color = COLOR_WHITE.copy(alpha = 0.95f * beamAlpha),
+                    topLeft = Offset(beamCenterSx - beamWidth * 0.08f, horizonY),
+                    size = Size(beamWidth * 0.16f, screenH - horizonY)
+                )
+
+                // 2. Upward Sweeping Prismatic Shockwave Ring
+                val waveProgress = (stage2Ratio * 1.6f).coerceIn(0f, 1f)
+                val waveY = sby - waveProgress * (sby - horizonY)
+                val waveScale = 1f - (waveProgress * 0.5f)
+                val waveRadiusX = (screenW * 0.50f) * waveScale
+                val waveRadiusY = waveRadiusX * 0.40f
+
+                // Concentric rainbow bands
+                val colors = arrayOf(COLOR_MAGENTA, COLOR_CYAN, COLOR_GREEN, COLOR_AMBER, COLOR_WHITE)
+                for (ci in colors.indices) {
+                    val rOffset = ci * 6f
+                    drawScope.drawOval(
+                        color = colors[ci].copy(alpha = (0.85f - ci * 0.12f) * (1f - waveProgress * 0.5f)),
+                        topLeft = Offset(beamCenterSx - waveRadiusX - rOffset, waveY - waveRadiusY - rOffset * 0.4f),
+                        size = Size((waveRadiusX + rOffset) * 2f, (waveRadiusY + rOffset * 0.4f) * 2f),
+                        style = strokeThickRing
+                    )
+                }
+
+                // 3. Perspective Vortex Helix Particles
+                for (p in 0 until 16) {
+                    val pAng = time * 8f + (p * 0.392f)
+                    val pYRatio = (p.toFloat() / 16f)
+                    val py = horizonY + pYRatio * (screenH - horizonY)
+                    val helixR = (screenW * 0.25f) * sin(pYRatio * 3.1415f)
+                    val px = beamCenterSx + cos(pAng) * helixR
+                    drawScope.drawCircle(
+                        color = if (p % 2 == 0) COLOR_WHITE else COLOR_CYAN,
+                        radius = 4f + 2f * sin(time * 12f + p),
+                        center = Offset(px, py)
+                    )
+                }
+            }
+            3 -> {
+                // Stage 3: Prismatic Overdrive Aftermath (Rainbow Aegis Aura)
+                val remaining = world.ultActiveTimer
+                val auraAlpha = (remaining / (GameConfig.ULT_DURATION - GameConfig.ULT_STAGE2_DURATION)).coerceIn(0f, 1f)
+                val auraR = scaler.scaleLaneDistance(world.bubbleRadius * 2.2f, world.bubbleY)
+
+                val rainbowPhase = (time * 2.5f) % 1f
+                val r = (0.5f + 0.5f * sin(rainbowPhase * 6.283f)).coerceIn(0f, 1f)
+                val g = (0.5f + 0.5f * sin((rainbowPhase + 0.333f) * 6.283f)).coerceIn(0f, 1f)
+                val b = (0.5f + 0.5f * sin((rainbowPhase + 0.666f) * 6.283f)).coerceIn(0f, 1f)
+                val rainbowColor = Color(r, g, b, 1f)
+
+                // Shimmering rainbow aura
+                drawScope.drawCircle(
+                    color = rainbowColor.copy(alpha = 0.25f * auraAlpha),
+                    radius = auraR,
+                    center = Offset(sbx, sby)
+                )
+                drawScope.drawCircle(
+                    color = rainbowColor.copy(alpha = 0.85f * auraAlpha),
+                    radius = auraR,
+                    center = Offset(sbx, sby),
+                    style = strokeCoreThin
+                )
+
+                // 8 Radiating Prism Spikes
+                for (s in 0 until 8) {
+                    val ang = (s * 45f) * (PI.toFloat() / 180f) + time * 3f
+                    val outerX = sbx + cos(ang) * (auraR * 1.35f)
+                    val outerY = sby + sin(ang) * (auraR * 1.35f * 0.65f)
+                    drawScope.drawLine(
+                        color = COLOR_WHITE.copy(alpha = 0.75f * auraAlpha),
+                        start = Offset(sbx + cos(ang) * auraR, sby + sin(ang) * (auraR * 0.65f)),
+                        end = Offset(outerX, outerY),
+                        strokeWidth = 2.5f
+                    )
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // 3D Threat Telegraph Warning Indicators
     // ---------------------------------------------------------------------------------------------
 
@@ -1881,6 +2091,10 @@ class ProceduralRenderer {
                 FloatingTextPool.TEXT_CRUSH.toInt() -> 0xFFFF3300.toInt() // Crimson
                 FloatingTextPool.TEXT_SPLIT.toInt() -> 0xFF00FF99.toInt() // Neon Green
                 FloatingTextPool.TEXT_BOUNTY.toInt() -> 0xFF00FF99.toInt() // Radiant Emerald Bounty
+                FloatingTextPool.TEXT_ULT_READY.toInt() -> 0xFFFFD700.toInt() // Prismatic Gold
+                FloatingTextPool.TEXT_HYPERNOVA.toInt() -> 0xFFFF00FF.toInt() // Spectral Magenta
+                FloatingTextPool.TEXT_PROTOCOL_UNLOCKED.toInt() -> 0xFF00F0FF.toInt() // Cyan
+                FloatingTextPool.TEXT_OVERDRIVE.toInt() -> 0xFFFF9900.toInt() // Amber Overdrive
                 else -> 0xFFFFB800.toInt()                                // Amber
             }
             textPaint.alpha = (lifeRatio * 255).toInt().coerceIn(0, 255)

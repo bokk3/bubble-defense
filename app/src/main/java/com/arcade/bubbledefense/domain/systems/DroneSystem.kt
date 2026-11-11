@@ -75,7 +75,9 @@ class DroneSystem(
             2 -> GameConfig.DRONE_FIRE_INTERVAL_L2
             else -> GameConfig.DRONE_FIRE_INTERVAL_L3
         }
-        val fireInterval = if (world.hasProtocol(GameConfig.PROTOCOL_DRONE_OVERCLOCK)) {
+        val fireInterval = if (world.droneOverdriveTimer > 0f) {
+            GameConfig.DRONE_OVERDRIVE_FIRE_INTERVAL
+        } else if (world.hasProtocol(GameConfig.PROTOCOL_DRONE_OVERCLOCK)) {
             baseFireInterval * GameConfig.PROTOCOL_DRONE_FIRE_RATE_SCALE
         } else {
             baseFireInterval
@@ -177,6 +179,7 @@ class DroneSystem(
         if (oType == GameConfig.TYPE_NEEDLE || oType == GameConfig.TYPE_SHARD || r <= 16f) {
             spawnDroneImpactSparks(tx, ty)
             world.addScore(150)
+            world.addUltCharge(GameConfig.ULT_CHARGE_DRONE_KILL)
             world.floatingTexts.spawn(tx, ty - 10f, -60f, 0.35f, 1.1f, FloatingTextPool.TEXT_PLUS_50)
             world.obstacles.removeAt(obsIdx)
         } else {
@@ -184,6 +187,7 @@ class DroneSystem(
             world.obstacles.radius[obsIdx] = (r * 0.75f).coerceAtLeast(12f)
             spawnDroneImpactSparks(tx, ty)
             world.addScore(75)
+            world.addUltCharge(GameConfig.ULT_CHARGE_DRONE_KILL * 0.5f)
         }
 
         // Protocol 3: Sentinel Overdrive secondary piercing strike
