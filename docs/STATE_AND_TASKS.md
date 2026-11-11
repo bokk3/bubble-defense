@@ -26,6 +26,7 @@ We adhere to **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)**:
 | **`v1.4.0`** | **Phase 9** | Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere | **RELEASED** | 2026-11-11 |
 | **`v1.5.0`** | **Phase 10** | Procedural Algorithmic Music & Funky Void Grooves | **RELEASED** | 2026-11-11 |
 | **`v1.6.0`** | **Phase 11** | Tactical Grounding, Shield Kinetic Ripples & Prism Carriers | **RELEASED** | 2026-11-11 |
+| **`v1.7.0`** | **Phase 12** | Sideline Sentinel Drones & Tactical Prism Tech Tree | **RELEASED** | 2026-11-11 |
 
 ---
 
@@ -365,6 +366,26 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
   - [x] Verify signed `app-release.apk` with `aapt dump badging` and `apksigner.bat`.
   - [x] Git commit, tag `v1.6.0`, and create GitHub release.
 
+### Phase 12: Sideline Sentinel Drones & Tactical Prism Tech Tree (`v1.7.0`) — [x]
+- [x] **T12.1 Sideline Sentinel Drone System (`DroneSystem`)** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement zero-allocation `DroneSystem` tracking closest hostile threats to the bubble.
+  - [x] Autonomous targeting and interceptor plasma beam firing with kinetic knockback.
+  - [x] Never target friendly Emerald Prism Carriers.
+- [x] **T12.2 Flow Economy Prism Unlock Tree (`EconomyGateway`)** `[ECON-AGENT]`, `[arcade-economy-architect]`
+  - [x] Add 3-tier drone upgrade path: Level 1 (Left Drone, 30 💎), Level 2 (Dual Drones, 60 💎), Level 3 (Rapid Overcharge, 100 💎).
+  - [x] Deduct Prisms cleanly and persist upgrade state in `EconomyGateway`.
+  - [x] Add interactive Drone Bay upgrade button in UI.
+- [x] **T12.3 2.5D Drone Rendering & Laser Strike VFX** `[JUICE-AGENT]`, `[kotlin-ux-architect]`
+  - [x] Render 2.5D perspective sideline drones hovering on corridor shoulders.
+  - [x] Faint laser targeting sight lines tracking active targets.
+  - [x] Multi-pass glowing interceptor laser beams and plasma strike spark bursts.
+- [x] **T12.4 Unit Tests & Zero-Allocation Verification** `[ARCH-AGENT]`, `[PHYS-AGENT]`
+  - [x] Implement `DroneSystemTest.kt` verifying target priority, cooldown rates, knockback, and zero allocations.
+  - [x] Verify test suite passes with 0 failures and 0 heap allocations in hot paths (154/154 tests passing).
+- [x] **T12.5 Release Candidate APK (v1.7.0) & GitHub Release** `[ARCH-AGENT]`
+  - [x] Assemble signed `app-release.apk` with `apksigner.bat` and `aapt dump badging` verification.
+  - [x] Commit, tag `v1.7.0`, and publish GitHub release.
+
 ---
 
 ## 3. Known Edge Cases & Handling
@@ -402,6 +423,39 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ---
 
 ## 4. Change Log & Semantic Version History
+
+### `v1.7.0` (2026-11-11) — Phase 12: Sideline Sentinel Drones & Tactical Prism Tech Tree
+- **feat(drones):** Autonomous Sideline Sentinel Drone System (`DroneSystem.kt`):
+  - Drones deployed on left ($X = 75\text{ wu}$) and right ($X = 925\text{ wu}$) corridor shoulders with microgravity hover bobbing.
+  - Autonomous radar targeting highest-threat obstacles closest to the defense bubble ($Y \approx 1476\text{ wu}$).
+  - Tactical sector division: Left drone prefers left sector ($X \le 600\text{ wu}$), right drone prefers right sector ($X \ge 400\text{ wu}$).
+  - Interceptor plasma beam strikes dealing kinetic impulse knockback ($-180\text{ wu/s}$) and disintegrating fragile threats (Needles, Shards) into neon plasma sparks.
+  - Heavy obstacles (Crushers, Drifters) are reduced in size and pushed back with tactical knockback.
+- **feat(economy):** Soft Currency Prism Tech Tree (`EconomyGateway.kt`):
+  - 3-tier drone upgrade tree: Level 1 (Single Left Sentinel, 30 💎), Level 2 (Dual Sentinels, 60 💎), Level 3 (Rapid Overcharge, 100 💎).
+  - Quarantined soft currency deductions via `EconomyGateway.spendPrisms()`.
+  - Interactive Drone Bay upgrade card on the Game Over screen with live balance check and upgrade feedback.
+- **feat(rules):** Friendly Bounty Protection Protocol:
+  - Drones strictly ignore friendly Emerald Prism Carriers (`TYPE_PRISM_CARRIER`), preserving harvest opportunities.
+- **feat(render):** Procedural 2.5D Drone Rendering & Interceptor VFX:
+  - Obsidian diamond stealth chassis with specular laser edge trim and ground drop-shadows.
+  - Multi-pass glowing interceptor laser beams (outer wide cyan/amber glow, intense core, hot white center).
+  - Faint targeting laser sight lines and reticle lock rings.
+  - Diegetic Sentinel Drone status badge displayed in the 120Hz Hardware HUD.
+- **test(suite):** Full test suite passes **154/154 unit tests** (0 failures, 0 skipped, 0ms GC allocations on hot paths).
+- **build(release):** Assembled and verified signed release APK `bubble-defense-v1.7.0.apk` (822 KB, APK Signature Scheme v2 verified, `aapt dump badging` 0 errors).
+
+### `v1.6.0` (2026-11-11) — Phase 11: Tactical Grounding, Shield Kinetic Ripples & Prism Carriers
+- **feat(grounding):** Corridor rail clamp nodes and dielectric micro-sparks grounding player shields into containment filaments ($X \le 135$ or $X \ge 865$).
+- **feat(physics):** Shield kinetic impact ripples deforming 3D extruded barriers with 58 Hz sine wave ripples along segment normals upon impact.
+- **feat(bounty):** Emerald Prism Carrier Bounties (`TYPE_PRISM_CARRIER = 5`): spawns every 14s, deflecting harmlessly off shields and rewarding +1 HP, +5 Prisms, +250 score on bubble catch.
+- **feat(hud):** Diegetic neon ink fuel gauge with hot white tip cursor.
+- **test(suite):** Full test suite passes 147/147 unit tests.
+
+### `v1.5.0` (2026-11-11) — Phase 10: Procedural Algorithmic Music & Funky Void Grooves
+- **feat(audio):** Zero-alloc procedural software DSP engine (`VoidSynthEngine.kt`) streaming 44.1 kHz 16-bit PCM audio to `AudioTrack`.
+- **feat(sequencer):** Strudel-style algorithmic pattern sequencer (`PatternSequencer.kt`) generating 32-step 16th-note funk grooves with micro-swing, slap bass, pitch-swept kicks, and velocity-linked tempo (106–136 BPM).
+- **test(suite):** Full test suite passes 144/144 unit tests.
 
 ### `v1.4.0` (2026-11-11) — Phase 9: Eerie Cosmic Void, Event Horizon Singularity & Deep Space Atmosphere
 - **feat(void):** Atmospheric visual overhaul from 80s arcade highway to chilling, silent, vast deep space void:
@@ -539,13 +593,13 @@ Legend: `[x]` Completed &bull; `[/]` In Progress &bull; `[ ]` Not Started
 ## 5. Agent Handoff Notes
 
 - **Date:** 2026-11-11
-- **Current Version:** `v1.6.0`
+- **Current Version:** `v1.7.0` (RELEASED)
 - **Active Persona:** [ARCH-AGENT], [PHYS-AGENT], [JUICE-AGENT], [ECON-AGENT]
-- **Status:** **PHASE 11 COMPLETE (v1.6.0 Tactical Grounding, Shield Kinetic Ripples & Prism Carriers)**:
-  - **Ground the Shields:** Pulsing neon rail clamp nodes and dielectric micro-arcs connecting player shield segment endpoints to the 3D corridor containment filaments when drawn within $35\text{ wu}$ of the lane curbs.
-  - **Kinetic Impact Ripples:** Dynamic $58\text{ Hz}$ sine wave deformation traveling along the shield normal upon obstacle collisions, visually communicating kinetic force and structural strain.
-  - **Emerald Prism Carrier Bounties:** Peaceful/bounty target (`TYPE_PRISM_CARRIER = 5`) with rotating emerald diamond facets, radiant crystal core, and spinning quantum rings. When caught by the bubble: repairs $+1$ Bubble HP, grants $+5$ Prisms, $+250$ score, and triggers floating `+5 PRISMS!` text with emerald harvest sparks.
-  - **Diegetic Bubble Fuel Gauge Polish:** Brightened multi-pass neon bloom and hot glowing tip cursor on the bubble's live ink arc.
-  - **Unit Test Coverage:** 147/147 unit tests passing (0 failures, zero heap allocations).
-  - **Production Release:** Signed release APK assembled and verified with Scheme v2 (`bubble-defense-v1.6.0.apk`).
-- **Next Task:** Live testing on physical hardware with user.
+- **Status:** **PHASE 12 COMPLETE (Sideline Sentinel Drones & Tactical Prism Tech Tree)**:
+  - Autonomous Sideline Sentinel Drones deployed along corridor shoulder rails with 2.5D perspective rendering, obsidian diamond chassis, and thruster plumes.
+  - Soft currency Prism unlock progression: Level 1 (Single Left Sentinel, 30 💎), Level 2 (Dual Sentinels, 60 💎), Level 3 (Rapid Overcharge, 100 💎).
+  - Real-time targeting algorithm prioritizing highest-threat obstacles closest to the defense bubble while safely ignoring friendly Emerald Prism Carriers.
+  - Interceptor plasma beam strikes dealing kinetic knockback and disintegrating small hazards.
+  - Interactive Drone Bay upgrade card on Game Over modal and live HUD status badge.
+  - Verified with 154/154 unit tests passing, zero heap allocations on hot paths, APK Signature Scheme v2 verified, and clean `aapt dump badging`.
+- **Next Task:** Solicit user feedback on drone combat pacing and visual flare.

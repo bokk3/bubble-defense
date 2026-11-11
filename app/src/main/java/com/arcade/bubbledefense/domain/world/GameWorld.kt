@@ -134,6 +134,11 @@ class GameWorld(initialSeed: Int = 1337) {
     var reviveEligible: Boolean = false
     var clutchReviveFuseTimer: Float = 0f
 
+    // ---------------------------------------------------------------------------------------------
+    // Sideline Sentinel Drones (Tactical Unlockable Defense)
+    // ---------------------------------------------------------------------------------------------
+    var droneLevel: Int = 0
+
     init {
         reset(initialSeed)
     }

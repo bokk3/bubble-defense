@@ -98,6 +98,23 @@ class MockEconomyService(
         }
     }
 
+    override var droneUpgradeLevel: Int = 0
+
+    override fun getNextDroneUpgradeCost(): Int {
+        return if (droneUpgradeLevel < GameConfig.DRONE_MAX_LEVEL) {
+            GameConfig.DRONE_UPGRADE_COSTS[droneUpgradeLevel]
+        } else -1
+    }
+
+    override fun upgradeDrone(): Boolean {
+        val cost = getNextDroneUpgradeCost()
+        if (cost > 0 && spendPrisms(cost)) {
+            droneUpgradeLevel++
+            return true
+        }
+        return false
+    }
+
     /** Unlocks a cosmetic skin if the player has sufficient prisms. */
     fun unlockSkin(skinId: String, cost: Int): Boolean {
         if (unlockedSkinIds.contains(skinId)) return true

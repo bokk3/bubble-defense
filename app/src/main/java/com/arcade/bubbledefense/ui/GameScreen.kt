@@ -46,6 +46,7 @@ import com.arcade.bubbledefense.domain.economy.RewardPlacement
 import com.arcade.bubbledefense.domain.economy.RewardResult
 import com.arcade.bubbledefense.domain.economy.ShieldSkin
 import com.arcade.bubbledefense.domain.systems.DirectorSystem
+import com.arcade.bubbledefense.domain.systems.DroneSystem
 import com.arcade.bubbledefense.domain.systems.JuiceSystem
 import com.arcade.bubbledefense.domain.systems.PhysicsSystem
 import com.arcade.bubbledefense.domain.systems.ShieldInputSystem
@@ -95,6 +96,12 @@ fun GameScreen(
     var isMuted by remember { mutableStateOf(false) }
     var lastParryCount by remember { mutableStateOf(0) }
 
+    // Sideline Sentinel Drone System
+    val droneSystem = remember { DroneSystem(world, synth) }
+
+    // Sync drone upgrade level from economy
+    world.droneLevel = economyGateway.droneUpgradeLevel
+
     // Lifecycle: start audio thread on enter, release hardware track on exit
     DisposableEffect(Unit) {
         synth.start()
@@ -138,9 +145,10 @@ fun GameScreen(
                     // Step wave director
                     directorSystem.step(dt)
                 }
-                // Step input, physics, and juice systems
+                // Step input, physics, drone, and juice systems
                 inputSystem.step(dt)
                 physicsSystem.stepFrame(dt)
+                droneSystem.step(dt)
                 juiceSystem.step(dt)
 
                 // Step procedural audio sequencer
@@ -289,7 +297,7 @@ fun GameScreen(
             }
 
             // Execute zero-allocation render pass
-            renderer.draw(this, world, scaler, renderAlpha)
+            renderer.draw(this, world, scaler, renderAlpha, droneSystem)
         }
 
         // 4. Procedural Audio Mute Toggle Button
@@ -417,6 +425,59 @@ fun GameScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
+                    // Tactical Drone Bay Upgrade Card
+                    val nextDroneCost = economyGateway.getNextDroneUpgradeCost()
+                    val totalPrisms = economyGateway.getPrismBalance()
+                    val canAffordDrone = nextDroneCost > 0 && totalPrisms >= nextDroneCost
+                    val droneTitle = when (world.droneLevel) {
+                        0 -> "DEPLOY SENTINEL DRONE (30 💎)"
+                        1 -> "UPGRADE DUAL SENTINELS (60 💎)"
+                        2 -> "OVERCHARGE SENTINELS (100 💎)"
+                        else -> "SENTINELS: MAX OVERCHARGE (LVL 3)"
+                    }
+                    val droneSubtext = when (world.droneLevel) {
+                        0 -> "Auto-fires plasma beams at closest threats"
+                        1 -> "Deploys 2nd sentinel on right shoulder rail"
+                        2 -> "Rapid +30% fire rate and kinetic knockback"
+                        else -> "Peak tactical automation achieved"
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = if (canAffordDrone) ProceduralRenderer.COLOR_CYAN.copy(alpha = 0.22f)
+                                else Color(0x33101E33),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .clickable(enabled = canAffordDrone) {
+                                if (economyGateway.upgradeDrone()) {
+                                    world.droneLevel = economyGateway.droneUpgradeLevel
+                                    droneSystem.reset()
+                                }
+                            }
+                            .padding(horizontal = 18.dp, vertical = 10.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = droneTitle,
+                                color = if (canAffordDrone) ProceduralRenderer.COLOR_CYAN
+                                else if (nextDroneCost > 0) Color(0xFF6A85A0)
+                                else ProceduralRenderer.COLOR_AMBER,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                style = tnumStyle
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = droneSubtext,
+                                color = Color(0xFFA0B4C8),
+                                fontSize = 10.sp,
+                                style = tnumStyle
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     // Sub-300ms Instant Retry Button
                     Box(
                         modifier = Modifier
@@ -429,6 +490,7 @@ fun GameScreen(
                                     world.reset()
                                     inputSystem.reset()
                                     directorSystem.reset()
+                                    droneSystem.reset()
                                     sequencer.reset()
                                     lastParryCount = 0
                                     deathProcessed = false

@@ -69,4 +69,13 @@ interface EconomyGateway {
 
     /** Active equipped bubble skin ID. */
     var equippedBubbleSkinId: String
+
+    /** Active sideline drone upgrade level (0 = Locked, 1 = Left Drone, 2 = Dual Drones, 3 = Overcharged). */
+    var droneUpgradeLevel: Int
+
+    /** Cost in Prisms for the next drone upgrade level, or -1 if maxed out. */
+    fun getNextDroneUpgradeCost(): Int
+
+    /** Attempts to purchase the next drone upgrade level using Prisms. Returns true if successful. */
+    fun upgradeDrone(): Boolean
 }

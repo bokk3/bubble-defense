@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import com.arcade.bubbledefense.domain.config.GameConfig
 import com.arcade.bubbledefense.domain.economy.BubbleSkin
 import com.arcade.bubbledefense.domain.economy.ShieldSkin
+import com.arcade.bubbledefense.domain.systems.DroneSystem
 import com.arcade.bubbledefense.domain.world.GameWorld
 import com.arcade.bubbledefense.engine.loop.ViewportScaler
 import com.arcade.bubbledefense.engine.pool.FloatingTextPool
@@ -100,6 +101,7 @@ class ProceduralRenderer {
     private val highwayPath = Path()
     private val nebulaPath = Path()
     private val monolithPath = Path()
+    private val dronePath = Path()
 
     // Reusable Pre-Allocated Strokes
     private val strokeGlowWide = Stroke(width = 16f, cap = StrokeCap.Round)
@@ -154,7 +156,8 @@ class ProceduralRenderer {
         drawScope: DrawScope,
         world: GameWorld,
         scaler: ViewportScaler,
-        alpha: Float
+        alpha: Float,
+        droneSystem: DroneSystem? = null
     ) {
         // 1. Draw Deep Cyberpunk Void Background
         drawScope.drawRect(COLOR_BG)
@@ -180,6 +183,11 @@ class ProceduralRenderer {
 
         // 8. Draw Depth-Sorted Incoming Obstacles with Atmospheric Void Fog
         drawObstacles(drawScope, world, scaler)
+
+        // 8b. Draw Sideline Sentinel Drones & Interceptor Beams
+        if (droneSystem != null && world.droneLevel > 0) {
+            drawDrones(drawScope, world, scaler, droneSystem)
+        }
 
         // 9. Draw 3D Threat Telegraph Warning Lasers & Chevrons
         drawTelegraphs(drawScope, world, scaler)
@@ -1319,6 +1327,185 @@ class ProceduralRenderer {
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Sideline Sentinel Drones & Interceptor Beams
+    // ---------------------------------------------------------------------------------------------
+
+    private fun drawDrones(
+        drawScope: DrawScope,
+        world: GameWorld,
+        scaler: ViewportScaler,
+        droneSystem: DroneSystem
+    ) {
+        val activeCount = if (world.droneLevel >= 2) 2 else 1
+        val time = world.gameTime
+
+        for (d in 0 until activeCount) {
+            val wx = droneSystem.droneX[d]
+            val wy = droneSystem.droneY[d]
+
+            val dsx = scaler.worldLaneToScreenX(wx, wy)
+            val dsy = scaler.worldLaneToScreenY(wx, wy)
+            val depthScale = scaler.scaleLaneDepth(wy)
+
+            // 1. Faint Targeting Laser Sight Line (when acquiring target and not firing beam)
+            if (droneSystem.hasTarget[d] && droneSystem.beamTimer[d] <= 0f) {
+                val tx = droneSystem.beamTargetX[d]
+                val ty = droneSystem.beamTargetY[d]
+                val tsx = scaler.worldLaneToScreenX(tx, ty)
+                val tsy = scaler.worldLaneToScreenY(tx, ty)
+
+                // Laser guide sight line
+                drawScope.drawLine(
+                    color = COLOR_CYAN.copy(alpha = 0.22f),
+                    start = Offset(dsx, dsy),
+                    end = Offset(tsx, tsy),
+                    strokeWidth = 1.2f * depthScale
+                )
+
+                // Subtle reticle brackets on target
+                val reticleR = 12f * depthScale
+                drawScope.drawCircle(
+                    color = COLOR_CYAN.copy(alpha = 0.30f),
+                    radius = reticleR,
+                    center = Offset(tsx, tsy),
+                    style = strokeWhiteCore
+                )
+            }
+
+            // 2. Active Interceptor Plasma Beam (during fire flash)
+            if (droneSystem.beamTimer[d] > 0f) {
+                val beamRatio = (droneSystem.beamTimer[d] / GameConfig.DRONE_BEAM_DURATION).coerceIn(0f, 1f)
+                val tx = droneSystem.beamTargetX[d]
+                val ty = droneSystem.beamTargetY[d]
+                val tsx = scaler.worldLaneToScreenX(tx, ty)
+                val tsy = scaler.worldLaneToScreenY(tx, ty)
+
+                val start = Offset(dsx, dsy)
+                val end = Offset(tsx, tsy)
+
+                val beamColor = if (world.droneLevel >= 3) COLOR_AMBER else COLOR_CYAN
+
+                // Multi-pass neon beam
+                // Wide outer glow
+                drawScope.drawLine(
+                    color = beamColor.copy(alpha = 0.28f * beamRatio),
+                    start = start,
+                    end = end,
+                    strokeWidth = 14f * depthScale
+                )
+                // Mid laser core
+                drawScope.drawLine(
+                    color = beamColor.copy(alpha = 0.85f * beamRatio),
+                    start = start,
+                    end = end,
+                    strokeWidth = 5f * depthScale
+                )
+                // Hot white center line
+                drawScope.drawLine(
+                    color = COLOR_WHITE.copy(alpha = beamRatio),
+                    start = start,
+                    end = end,
+                    strokeWidth = 2f * depthScale
+                )
+
+                // Plasma impact flare at target
+                drawScope.drawCircle(
+                    color = beamColor.copy(alpha = 0.70f * beamRatio),
+                    radius = 20f * depthScale,
+                    center = end
+                )
+                drawScope.drawCircle(
+                    color = COLOR_WHITE.copy(alpha = 0.95f * beamRatio),
+                    radius = 8f * depthScale,
+                    center = end
+                )
+            }
+
+            // 3. Drone Shoulder Rail Tether (Visual grounding to corridor rail)
+            val railWx = if (d == 0) 135f else 865f
+            val rsx = scaler.worldLaneToScreenX(railWx, wy)
+            val rsy = scaler.worldLaneToScreenY(railWx, wy)
+            drawScope.drawLine(
+                color = COLOR_CYAN.copy(alpha = 0.25f),
+                start = Offset(rsx, rsy),
+                end = Offset(dsx, dsy),
+                strokeWidth = 1.5f * depthScale
+            )
+
+            // 4. Ground Drop-Shadow on Void Slipstream
+            val shadowW = 28f * depthScale
+            val shadowH = 9f * depthScale
+            drawScope.drawOval(
+                color = COLOR_SHADOW,
+                topLeft = Offset(dsx - shadowW * 0.5f, dsy + 12f * depthScale),
+                size = Size(shadowW, shadowH)
+            )
+
+            // 5. Thruster Plasma Jet (Down-facing with high-frequency sine flicker)
+            val flicker = 0.75f + 0.25f * sin(time * 35f + d * 3f)
+            val jetLen = 14f * depthScale * flicker
+            val jetColor = if (world.droneLevel >= 3) COLOR_AMBER else COLOR_CYAN
+            drawScope.drawLine(
+                color = jetColor.copy(alpha = 0.60f * flicker),
+                start = Offset(dsx, dsy + 10f * depthScale),
+                end = Offset(dsx, dsy + 10f * depthScale + jetLen),
+                strokeWidth = 3.5f * depthScale
+            )
+            drawScope.drawLine(
+                color = COLOR_WHITE.copy(alpha = 0.85f * flicker),
+                start = Offset(dsx, dsy + 10f * depthScale),
+                end = Offset(dsx, dsy + 10f * depthScale + jetLen * 0.6f),
+                strokeWidth = 1.5f * depthScale
+            )
+
+            // 6. Drone Chassis (Diamond Stealth Chassis with Specular Laser Trim)
+            val rot = droneSystem.droneAngle[d]
+            val cosR = cos(rot)
+            val sinR = sin(rot)
+
+            val halfW = 12f * depthScale
+            val halfH = 16f * depthScale
+
+            // Diamond vertices relative to drone center
+            val p0x = 0f
+            val p0y = -halfH
+            val p1x = halfW
+            val p1y = 0f
+            val p2x = 0f
+            val p2y = halfH
+            val p3x = -halfW
+            val p3y = 0f
+
+            dronePath.reset()
+            dronePath.moveTo(dsx + (p0x * cosR - p0y * sinR), dsy + (p0x * sinR + p0y * cosR))
+            dronePath.lineTo(dsx + (p1x * cosR - p1y * sinR), dsy + (p1x * sinR + p1y * cosR))
+            dronePath.lineTo(dsx + (p2x * cosR - p2y * sinR), dsy + (p2x * sinR + p2y * cosR))
+            dronePath.lineTo(dsx + (p3x * cosR - p3y * sinR), dsy + (p3x * sinR + p3y * cosR))
+            dronePath.close()
+
+            // Obsidian armor body
+            drawScope.drawPath(dronePath, color = Color(0xFF09111E), style = Fill)
+            // Accent laser rim
+            val rimColor = if (world.droneLevel >= 3) COLOR_AMBER else COLOR_CYAN
+            drawScope.drawPath(dronePath, color = rimColor.copy(alpha = 0.90f), style = strokeWhiteCore)
+
+            // 7. Rotating Plasma Core
+            val coreR = 4f * depthScale
+            val corePulse = 0.8f + 0.2f * sin(time * 8f + d * 2f)
+            drawScope.drawCircle(
+                color = rimColor.copy(alpha = 0.40f * corePulse),
+                radius = coreR * 2.2f,
+                center = Offset(dsx, dsy)
+            )
+            drawScope.drawCircle(
+                color = COLOR_WHITE.copy(alpha = 0.95f),
+                radius = coreR,
+                center = Offset(dsx, dsy)
+            )
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // 3D Threat Telegraph Warning Indicators
     // ---------------------------------------------------------------------------------------------
 
@@ -1736,6 +1923,19 @@ class ProceduralRenderer {
                 // Depleted Core: Crimson Outline
                 drawScope.drawPath(scratchPath, color = COLOR_RED.copy(alpha = 0.25f), style = strokeWhiteCore)
             }
+        }
+
+        // Sentinel Drone Status Badge
+        if (world.droneLevel > 0) {
+            hudPaintCenter.textSize = 10f * scale
+            hudPaintCenter.color = if (world.droneLevel >= 3) 0xFFFFB800.toInt() else 0xFF00F0FF.toInt()
+            hudPaintCenter.alpha = 200
+            val droneStatus = when (world.droneLevel) {
+                1 -> "SENTINEL 1 ACTIVE"
+                2 -> "DUAL SENTINELS ACTIVE"
+                else -> "SENTINELS OVERCHARGED"
+            }
+            canvas.drawText("✦ $droneStatus ✦", cx, topY + 58f * scale, hudPaintCenter)
         }
 
         // 3. Top-Right: Score, Multiplier & Soft Currency Prisms

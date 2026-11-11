@@ -373,4 +373,17 @@ object GameConfig {
 
     /** Longitudinal spacing between forward-scrolling floor crosslines (wu). */
     const val FLOOR_CROSSLINE_SPACING_WU: Float = 100f
+
+    // ---------------------------------------------------------------------------------------------
+    // Sideline Sentinel Drones (Tactical Unlockable Defense)
+    // ---------------------------------------------------------------------------------------------
+    const val DRONE_MAX_LEVEL: Int = 3
+    val DRONE_UPGRADE_COSTS: IntArray = intArrayOf(30, 60, 100)
+    const val DRONE_TARGET_RANGE_MIN_Y: Float = 300f
+    const val DRONE_TARGET_RANGE_MAX_Y: Float = 1420f
+    const val DRONE_FIRE_INTERVAL_L1: Float = 1.30f
+    const val DRONE_FIRE_INTERVAL_L2: Float = 0.95f
+    const val DRONE_FIRE_INTERVAL_L3: Float = 0.65f
+    const val DRONE_BEAM_DURATION: Float = 0.12f
+    const val DRONE_KNOCKBACK_FORCE: Float = 180f
 }
