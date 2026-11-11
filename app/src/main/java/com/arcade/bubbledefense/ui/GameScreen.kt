@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -50,6 +51,8 @@ import com.arcade.bubbledefense.domain.systems.PhysicsSystem
 import com.arcade.bubbledefense.domain.systems.ShieldInputSystem
 import com.arcade.bubbledefense.domain.world.GameState
 import com.arcade.bubbledefense.domain.world.GameWorld
+import com.arcade.bubbledefense.engine.audio.PatternSequencer
+import com.arcade.bubbledefense.engine.audio.VoidSynthEngine
 import com.arcade.bubbledefense.engine.loop.FixedGameLoop
 import com.arcade.bubbledefense.engine.loop.ViewportScaler
 import com.arcade.bubbledefense.engine.pool.InputRingBuffer
@@ -85,6 +88,20 @@ fun GameScreen(
     val physicsSystem = remember { PhysicsSystem(world) }
     val directorSystem = remember { DirectorSystem(world, initialSeed) }
     val juiceSystem = remember { JuiceSystem(world) }
+
+    // Procedural Software DSP Synthesizer & Algorithmic Sequencer
+    val synth = remember { VoidSynthEngine() }
+    val sequencer = remember { PatternSequencer(synth) }
+    var isMuted by remember { mutableStateOf(false) }
+    var lastParryCount by remember { mutableStateOf(0) }
+
+    // Lifecycle: start audio thread on enter, release hardware track on exit
+    DisposableEffect(Unit) {
+        synth.start()
+        onDispose {
+            synth.stop()
+        }
+    }
 
     // Sync procedural cosmetic skins
     renderer.activeShieldSkin = ShieldSkin.findById(economyGateway.equippedShieldSkinId)
@@ -125,6 +142,15 @@ fun GameScreen(
                 inputSystem.step(dt)
                 physicsSystem.stepFrame(dt)
                 juiceSystem.step(dt)
+
+                // Step procedural audio sequencer
+                if (world.parryTriggerCount > lastParryCount) {
+                    lastParryCount = world.parryTriggerCount
+                    sequencer.onParry()
+                }
+                if (world.state == GameState.PLAYING || world.state == GameState.READY) {
+                    sequencer.step(dt, world)
+                }
 
                 // Handle Game Over and Clutch Revive Fuse
                 if (world.state == GameState.GAME_OVER) {
@@ -266,7 +292,32 @@ fun GameScreen(
             renderer.draw(this, world, scaler, renderAlpha)
         }
 
-        // 4. Interactive Game Over Modal with Clutch Revive & Sub-300ms Instant Retry
+        // 4. Procedural Audio Mute Toggle Button
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(top = 88.dp, end = 16.dp)
+                .background(
+                    color = if (isMuted) Color(0x33FF0055) else Color(0x2200F0FF),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .clickable {
+                    isMuted = !isMuted
+                    synth.isMuted = isMuted
+                }
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = if (isMuted) "🔇 MUTE" else "🔊 FUNK ON",
+                color = if (isMuted) Color(0xFFFF0055) else ProceduralRenderer.COLOR_CYAN,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                style = tnumStyle
+            )
+        }
+
+        // 5. Interactive Game Over Modal with Clutch Revive & Sub-300ms Instant Retry
         if (currentGameState == GameState.GAME_OVER) {
             Box(
                 modifier = Modifier
@@ -378,6 +429,8 @@ fun GameScreen(
                                     world.reset()
                                     inputSystem.reset()
                                     directorSystem.reset()
+                                    sequencer.reset()
+                                    lastParryCount = 0
                                     deathProcessed = false
                                     world.state = GameState.PLAYING
                                     currentGameState = GameState.PLAYING

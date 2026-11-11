@@ -84,6 +84,7 @@ class GameWorld(initialSeed: Int = 1337) {
 
     var prismsCollected: Int = 0
     var perfectParriesTotal: Int = 0
+    var parryTriggerCount: Int = 0
 
     var highScore: Int = 0
     var bestAltitudeMeters: Float = 0f
@@ -179,6 +180,7 @@ class GameWorld(initialSeed: Int = 1337) {
         comboTimer = 0f
         prismsCollected = 0
         perfectParriesTotal = 0
+        parryTriggerCount = 0
 
         // Reset Juice
         trauma = 0f

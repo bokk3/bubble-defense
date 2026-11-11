@@ -338,6 +338,7 @@ class PhysicsSystem(private val world: GameWorld) {
             // PERFECT PARRY
             world.obstacles.flags[obsIdx] = world.obstacles.flags[obsIdx] or GameConfig.FLAG_PARRIED
             world.perfectParriesTotal++
+            world.parryTriggerCount++
             world.triggerHitStop(GameConfig.HIT_STOP_PARRY_DURATION)
             world.addTrauma(GameConfig.TRAUMA_PARRY)
 
